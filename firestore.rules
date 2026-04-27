@@ -1,0 +1,91 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global Helpers
+    function isValidId(id) { 
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+    }
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isAdmin() { 
+      return isSignedIn() && (
+        request.auth.token.email == "ruialexandrepina@gmail.com" ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    // Validation Helpers
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'createdAt']) &&
+             data.keys().size() >= 2 &&
+             data.email is string && data.email.size() <= 256 &&
+             data.createdAt == request.time;
+    }
+
+    function isValidSubscription(data) {
+      return data.keys().hasAll(['userId', 'name', 'amount', 'billingCycle', 'billingDay', 'category', 'status', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             data.name is string && data.name.size() <= 100 &&
+             data.amount is number && data.amount >= 0 &&
+             data.billingCycle in ['monthly', 'annual'] &&
+             data.billingDay is int && data.billingDay >= 1 && data.billingDay <= 31 &&
+             data.status in ['active', 'cancelled'] &&
+             data.createdAt == request.time;
+    }
+
+    // --- Global Admin Override ---
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+
+    // --- Users Collection ---
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'currency'])
+      );
+    }
+
+    // --- Subscriptions Collection ---
+    match /subscriptions/{subId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      allow create: if isSignedIn() && 
+                      isValidId(subId) && 
+                      isValidSubscription(incoming()) &&
+                      exists(/databases/$(database)/documents/users/$(request.auth.uid));
+
+      allow update: if isSignedIn() && 
+                      existing().userId == request.auth.uid &&
+                      incoming().userId == request.auth.uid &&
+                      (
+                        // Action: Update Metadata
+                        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'amount', 'billingCycle', 'billingDay', 'category', 'status', 'updatedAt']) &&
+                        incoming().updatedAt == request.time
+                      );
+
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    // --- Categories Collection ---
+    match /categories/{catId} {
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || !('userId' in resource.data));
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || !('userId' in resource.data));
+      
+      allow create: if isSignedIn() && 
+                      incoming().userId == request.auth.uid &&
+                      incoming().name is string && incoming().name.size() <= 50;
+      
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+  }
+}

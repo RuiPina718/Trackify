@@ -1,0 +1,61 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User account information and preferences.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "currency": { "type": "string", "enum": ["USD", "EUR", "GBP"] }
+      },
+      "required": ["email", "createdAt"]
+    },
+    "Subscription": {
+      "title": "Subscription",
+      "description": "A recurring service subscription.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "amount": { "type": "number" },
+        "currency": { "type": "string" },
+        "billingCycle": { "type": "string", "enum": ["monthly", "annual"] },
+        "billingDay": { "type": "number" },
+        "category": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "cancelled"] },
+        "startDate": { "type": "string", "format": "date" },
+        "nextBillingDate": { "type": "string", "format": "date" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "amount", "billingCycle", "billingDay", "category", "status", "createdAt"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Subscription category (predefined or custom).",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "color": { "type": "string" }
+      },
+      "required": ["name"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Private user profiles"
+    },
+    "/subscriptions/{subId}": {
+      "schema": "Subscription",
+      "description": "Individual subscriptions"
+    },
+    "/categories/{categoryId}": {
+      "schema": "Category",
+      "description": "Custom categories per user"
+    }
+  }
+}
