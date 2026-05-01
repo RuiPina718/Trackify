@@ -112,7 +112,7 @@ export default function CalendarView({ userId, currency = 'EUR' }: CalendarViewP
                   {daySubs.map(s => (
                     <div key={s.id} className="p-2 bg-bg border border-border-dim rounded-xl hover:border-accent/30 transition-all cursor-pointer">
                       <p className="text-[10px] font-bold text-text-main truncate leading-tight tracking-tight">{s.name}</p>
-                      <p className="text-[9px] text-accent font-black">{formatCurrency(s.amount, currency)}</p>
+                      <p className="text-[9px] text-accent font-black">{formatCurrency(s.amount, s.currency || currency)}</p>
                     </div>
                   ))}
                 </div>

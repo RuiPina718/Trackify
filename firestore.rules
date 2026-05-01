@@ -11,10 +11,11 @@ service cloud.firestore {
       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
     }
     function isSignedIn() { return request.auth != null; }
+    function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
     function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
     function isAdmin() { 
       return isSignedIn() && (
-        request.auth.token.email == "ruialexandrepina@gmail.com" ||
+        request.auth.token.email == "ruialexandrepina@gmail.com" && request.auth.token.email_verified == true ||
         exists(/databases/$(database)/documents/admins/$(request.auth.uid))
       );
     }
@@ -30,11 +31,12 @@ service cloud.firestore {
     }
 
     function isValidSubscription(data) {
-      return data.keys().hasAll(['userId', 'name', 'amount', 'billingCycle', 'billingDay', 'category', 'status', 'createdAt']) &&
+      return data.keys().hasAll(['userId', 'name', 'amount', 'billingCycle', 'billingDay', 'category', 'status', 'createdAt', 'currency']) &&
              data.userId == request.auth.uid &&
              data.name is string && data.name.size() <= 100 &&
              data.amount is number && data.amount >= 0 &&
-             data.billingCycle in ['monthly', 'annual'] &&
+             data.currency is string && data.currency.size() <= 3 &&
+             data.billingCycle in ['monthly', 'annual', 'weekly', 'yearly'] &&
              data.billingDay is int && data.billingDay >= 1 && data.billingDay <= 31 &&
              data.status in ['active', 'cancelled'] &&
              data.createdAt == request.time;
@@ -50,30 +52,32 @@ service cloud.firestore {
       allow get: if isOwner(userId);
       allow create: if isOwner(userId) && isValidUser(incoming());
       allow update: if isOwner(userId) && (
-        incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'currency'])
+        incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'currency', 'notifications', 'theme'])
       );
     }
 
     // --- Subscriptions Collection ---
     match /subscriptions/{subId} {
       allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && isValidId(subId) && resource.data.userId == request.auth.uid;
       
-      allow create: if isSignedIn() && 
+      allow create: if isVerified() && 
                       isValidId(subId) && 
                       isValidSubscription(incoming()) &&
                       exists(/databases/$(database)/documents/users/$(request.auth.uid));
 
-      allow update: if isSignedIn() && 
+      allow update: if isVerified() && 
+                      isValidId(subId) &&
                       existing().userId == request.auth.uid &&
                       incoming().userId == request.auth.uid &&
                       (
                         // Action: Update Metadata
-                        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'amount', 'billingCycle', 'billingDay', 'category', 'status', 'updatedAt']) &&
-                        incoming().updatedAt == request.time
+                        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'amount', 'billingCycle', 'billingDay', 'category', 'status', 'updatedAt', 'currency']) &&
+                        incoming().updatedAt == request.time &&
+                        (incoming().status != existing().status || isValidSubscription(incoming()))
                       );
 
-      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+      allow delete: if isVerified() && isValidId(subId) && existing().userId == request.auth.uid;
     }
 
     // --- Categories Collection ---
@@ -81,11 +85,11 @@ service cloud.firestore {
       allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || !('userId' in resource.data));
       allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || !('userId' in resource.data));
       
-      allow create: if isSignedIn() && 
+      allow create: if isVerified() && 
                       incoming().userId == request.auth.uid &&
                       incoming().name is string && incoming().name.size() <= 50;
       
-      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+      allow delete: if isVerified() && existing().userId == request.auth.uid;
     }
   }
 }

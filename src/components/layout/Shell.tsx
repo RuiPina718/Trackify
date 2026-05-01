@@ -10,7 +10,10 @@ import {
   Plus, 
   Search,
   Bell,
-  Shield
+  Shield,
+  BarChart3,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -18,29 +21,51 @@ import { Subscription, UserProfile } from '../../types';
 import Dashboard from '../dashboard/Overview';
 import SubscriptionList from '../subscriptions/SubscriptionList';
 import CalendarView from '../calendar/CalendarView';
+import AnalyticsView from '../analytics/AnalyticsView';
 import AddSubscriptionModal from '../subscriptions/AddSubscriptionModal';
 import AdminDashboard from '../admin/AdminDashboard';
 import SettingsView from '../settings/Settings';
-import { subscribeToUserProfile } from '../../services/userService';
+import Chatbot from '../chat/Chatbot';
+import { subscribeToUserProfile, updateUserProfile } from '../../services/userService';
 
 interface ShellProps {
   user: User;
 }
 
-export type ViewType = 'dashboard' | 'subscriptions' | 'calendar' | 'settings' | 'admin';
+export type ViewType = 'dashboard' | 'subscriptions' | 'calendar' | 'analytics' | 'settings' | 'admin';
 
 export default function Shell({ user }: ShellProps) {
   const [activeView, setActiveView] = useState<ViewType>('dashboard');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [editSubscription, setEditSubscription] = useState<Subscription | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [localTheme, setLocalTheme] = useState<'light' | 'dark'>('dark');
 
   useEffect(() => {
     const unsub = subscribeToUserProfile(user.uid, (profile) => {
       setUserProfile(profile);
+      const theme = profile?.theme || 'dark';
+      setLocalTheme(theme);
+      document.documentElement.classList.toggle('dark', theme === 'dark');
     });
     return () => unsub();
   }, [user.uid]);
+
+  const toggleTheme = async () => {
+    const newTheme = localTheme === 'light' ? 'dark' : 'light';
+    
+    setLocalTheme(newTheme);
+    document.documentElement.classList.toggle('dark', newTheme === 'dark');
+
+    try {
+      await updateUserProfile(user.uid, { theme: newTheme });
+    } catch (error) {
+      console.error('Error updating theme:', error);
+      setLocalTheme(localTheme);
+      document.documentElement.classList.toggle('dark', localTheme === 'dark');
+    }
+  };
 
   const handleEdit = (sub: Subscription) => {
     setEditSubscription(sub);
@@ -58,6 +83,7 @@ export default function Shell({ user }: ShellProps) {
     { id: 'dashboard', label: 'Monitor', icon: LayoutDashboard },
     { id: 'subscriptions', label: 'Subscrições', icon: CreditCard },
     { id: 'calendar', label: 'Calendário', icon: Calendar },
+    { id: 'analytics', label: 'Análise', icon: BarChart3 },
     { id: 'settings', label: 'Definições', icon: Settings },
   ];
 
@@ -72,9 +98,12 @@ export default function Shell({ user }: ShellProps) {
       {/* Sidebar */}
       <aside className="w-64 bg-card border-r border-border-dim flex flex-col">
         <div className="p-8">
-          <h1 className="text-xl font-extrabold tracking-tighter text-accent flex items-center gap-2">
+          <button 
+            onClick={() => setActiveView('dashboard')}
+            className="text-xl font-extrabold tracking-tighter text-accent flex items-center gap-2 hover:opacity-80 transition-opacity active:scale-95"
+          >
             TRACKIFY
-          </h1>
+          </button>
         </div>
 
         <nav className="flex-1 px-4 py-4 space-y-2">
@@ -131,14 +160,58 @@ export default function Shell({ user }: ShellProps) {
           </div>
 
           <div className="flex items-center gap-4">
-            <button className="p-2.5 rounded-xl bg-bg text-text-muted border border-border-dim hover:text-accent hover:border-accent transition-all relative">
-              <Bell size={20} />
-              <div className="absolute top-2 right-2 w-2 h-2 bg-accent rounded-full border-2 border-card"></div>
+            <button 
+              onClick={toggleTheme}
+              className="p-2.5 rounded-xl bg-bg text-text-muted border border-border-dim hover:text-accent hover:border-accent transition-all group"
+              title={localTheme === 'light' ? 'Mudar para Modo Escuro' : 'Mudar para Modo Claro'}
+            >
+              {localTheme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
             </button>
+
+            <div className="relative">
+              <button 
+                onClick={() => setShowNotifications(!showNotifications)}
+                className={cn(
+                  "p-2.5 rounded-xl bg-bg text-text-muted border transition-all relative",
+                  showNotifications ? "border-accent text-accent" : "border-border-dim hover:text-accent hover:border-accent"
+                )}
+              >
+                <Bell size={20} />
+                <div className="absolute top-2 right-2 w-2 h-2 bg-accent rounded-full border-2 border-card"></div>
+              </button>
+
+              <AnimatePresence>
+                {showNotifications && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute right-0 mt-4 w-80 bg-card border border-border-dim rounded-[2rem] shadow-2xl z-50 overflow-hidden"
+                  >
+                    <div className="p-6 border-b border-border-dim flex items-center justify-between">
+                      <h4 className="text-sm font-black text-text-main tracking-tight">Notificações</h4>
+                      <span className="text-[10px] font-black text-accent uppercase tracking-widest bg-accent/10 px-2 py-0.5 rounded-full">Recentes</span>
+                    </div>
+                    <div className="p-10 flex flex-col items-center text-center">
+                      <div className="w-16 h-16 bg-bg rounded-full flex items-center justify-center mb-4 border border-border-dim">
+                        <Bell size={24} className="text-text-muted/30" />
+                      </div>
+                      <p className="text-xs font-black text-text-main mb-1">Tudo limpo por aqui!</p>
+                      <p className="text-[10px] text-text-muted font-bold uppercase tracking-widest leading-relaxed">
+                        Não tens nenhuma notificação de cobrança pendente.
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
             
             <div className="h-10 w-px bg-border-dim mx-2"></div>
             
-            <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setActiveView('settings')}
+              className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+            >
               <div className="text-right">
                 <p className="text-sm font-bold text-text-main leading-tight">{user.displayName || 'Utilizador'}</p>
                 <p className="text-[10px] text-text-muted font-bold uppercase tracking-widest">Premium User</p>
@@ -146,7 +219,7 @@ export default function Shell({ user }: ShellProps) {
               <div className="w-10 h-10 rounded-2xl bg-accent flex items-center justify-center text-white text-xs font-black shadow-lg shadow-accent/20">
                 {user.email?.charAt(0).toUpperCase()}
               </div>
-            </div>
+            </button>
 
             <button 
               onClick={() => setIsModalOpen(true)}
@@ -169,9 +242,10 @@ export default function Shell({ user }: ShellProps) {
               transition={{ duration: 0.2 }}
               className="max-w-6xl mx-auto"
             >
-              {activeView === 'dashboard' && <Dashboard userId={user.uid} currency={userProfile?.currency} />}
+              {activeView === 'dashboard' && <Dashboard userId={user.uid} userProfile={userProfile} />}
               {activeView === 'subscriptions' && <SubscriptionList userId={user.uid} onEdit={handleEdit} currency={userProfile?.currency} />}
               {activeView === 'calendar' && <CalendarView userId={user.uid} currency={userProfile?.currency} />}
+              {activeView === 'analytics' && <AnalyticsView userId={user.uid} currency={userProfile?.currency} />}
               {activeView === 'admin' && isAdmin && <AdminDashboard />}
               {activeView === 'settings' && <SettingsView user={user} />}
             </motion.div>
@@ -186,6 +260,7 @@ export default function Shell({ user }: ShellProps) {
         editSubscription={editSubscription}
         defaultCurrency={userProfile?.currency}
       />
+      <Chatbot />
     </div>
   );
 }

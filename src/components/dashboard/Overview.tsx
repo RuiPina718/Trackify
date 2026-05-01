@@ -6,20 +6,25 @@ import {
   Calendar as CalendarIcon, 
   AlertCircle,
   Clock,
-  ArrowRight
+  ArrowRight,
+  CreditCard
 } from 'lucide-react';
 import { subscribeToUserSubscriptions } from '../../services/subscriptionService';
-import { Subscription } from '../../types';
+import { Subscription, UserProfile } from '../../types';
 import { formatCurrency, cn } from '../../lib/utils';
-import { format, addDays, isSameDay } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import { pt } from 'date-fns/locale';
+import { motion, AnimatePresence } from 'motion/react';
+import { IconRenderer } from '../ui/IconRenderer';
 
 interface DashboardProps {
   userId: string;
-  currency?: string;
+  userProfile: UserProfile | null;
 }
 
-export default function Dashboard({ userId, currency = 'EUR' }: DashboardProps) {
+export default function Dashboard({ userId, userProfile }: DashboardProps) {
+  const currency = userProfile?.currency || 'EUR';
+  const notifications = userProfile?.notifications;
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -67,173 +72,300 @@ export default function Dashboard({ userId, currency = 'EUR' }: DashboardProps) 
       yearlyTotal,
       activeCount: active.length,
       categories: sortedCategories,
-      upcoming
+      upcoming,
+      active
     };
   }, [subscriptions]);
+
+  const insights = useMemo(() => {
+    const list = [];
+    const activeSubs = stats.active;
+    
+    // Insight: High Streaming cost
+    const streamingData = stats.categories.find(c => c.name === 'Streaming');
+    if (streamingData && streamingData.value > stats.monthlyTotal * 0.25) {
+      list.push({
+        type: 'warning',
+        title: 'Gastos em Streaming',
+        description: `Estás a gastar ${Math.round((streamingData.value / stats.monthlyTotal) * 100)}% em entretenimento. Considera cancelar serviços que não usas diariamente.`,
+        icon: '💡'
+      });
+    }
+
+    // Insight: Monthly vs Yearly potential
+    const monthlySubs = activeSubs.filter(s => s.billingCycle === 'monthly');
+    if (monthlySubs.length >= 3) {
+      list.push({
+        type: 'info',
+        title: 'Pode Poupar Mais',
+        description: `Tens ${monthlySubs.length} subscrições mensais. Mudar para planos anuais pode reduzir os custos em até 20%.`,
+        icon: '⚡'
+      });
+    }
+
+    // Insight: "Inactive" (Simulated based on creation date > 6 months)
+    const oldSubs = activeSubs.filter(s => {
+      const createdDate = new Date(s.createdAt);
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      return createdDate < sixMonthsAgo;
+    });
+
+    if (oldSubs.length > 0) {
+      list.push({
+        type: 'suggestion',
+        title: 'Revisão de Veteranos',
+        description: `Tens ${oldSubs.length} subscrições com mais de 6 meses (ex: ${oldSubs[0].name}). Costumas usá-las todas?`,
+        icon: '🔍'
+      });
+    }
+
+    // Insight: Budget Alert
+    if (userProfile?.monthlyBudget && stats.monthlyTotal > userProfile.monthlyBudget) {
+      list.push({
+        type: 'warning',
+        title: 'Orçamento Excedido',
+        description: `Ultrapassaste o teu limite mensal em ${formatCurrency(stats.monthlyTotal - userProfile.monthlyBudget, currency)}.`,
+        icon: '⚠️'
+      });
+    }
+
+    return list.slice(0, 2); // Show top 2 insights
+  }, [stats]);
+
+  const urgentAlerts = useMemo(() => {
+    if (!notifications?.billingReminders) return [];
+    
+    const today = new Date();
+    const reminderDays = notifications.reminderDays || 3;
+    
+    return stats.upcoming.filter(s => {
+      const diffTime = s.nextDate.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays <= reminderDays;
+    });
+  }, [stats.upcoming, notifications]);
 
   if (loading) {
     return <div className="animate-pulse space-y-8">
       <div className="grid grid-cols-4 gap-6">
-        {[1,2,3,4].map(i => <div key={i} className="h-32 bg-gray-100 rounded-3xl" />)}
+        {[1,2,3,4].map(i => <div key={i} className="h-32 bg-card rounded-3xl" />)}
       </div>
-      <div className="h-96 bg-gray-100 rounded-3xl" />
+      <div className="h-96 bg-card rounded-3xl" />
     </div>;
   }
 
   return (
     <div className="space-y-8 pb-12">
-      {/* Bento Layout Grid */}
-      <div className="grid grid-cols-12 grid-rows-10 gap-4 h-[700px]">
-        {/* Main Stat Card - Monthly Expense */}
-        <div className="col-span-4 row-span-3 bg-card rounded-3xl border border-border-dim p-6 flex flex-col justify-between group hover:border-accent transition-all">
-          <div>
-            <p className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-4">Despesa Mensal</p>
-            <div className="flex items-baseline gap-2">
-              <h2 className="text-5xl font-black text-text-main tracking-tighter">{formatCurrency(stats.monthlyTotal, currency)}</h2>
+      {/* Urgent Alerts Banner */}
+      <AnimatePresence>
+        {urgentAlerts.length > 0 && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-accent/10 border border-accent/20 p-6 rounded-[2.5rem] flex items-center justify-between group overflow-hidden relative"
+          >
+            <div className="absolute top-0 right-0 w-32 h-full bg-accent/5 -skew-x-12 translate-x-12 pointer-events-none" />
+            <div className="flex items-center gap-5 relative z-10">
+              <div className="w-12 h-12 bg-accent rounded-2xl flex items-center justify-center text-white shadow-xl shadow-accent/30">
+                <AlertCircle size={22} className="animate-pulse" />
+              </div>
+              <div>
+                <h4 className="text-sm font-black text-text-main tracking-tight">Pagamentos em Breve</h4>
+                <p className="text-[10px] text-accent font-black uppercase tracking-widest mt-0.5">
+                  Tens {urgentAlerts.length} {urgentAlerts.length === 1 ? 'cobrança' : 'cobranças'} nos próximos {notifications?.reminderDays || 3} dias
+                </p>
+              </div>
             </div>
-            <p className={cn(
-               "text-xs font-bold mt-2",
-               stats.monthlyTotal > 0 ? "text-health" : "text-text-muted"
-            )}>
-              {stats.activeCount} subscrições activas
+            <div className="flex gap-3 relative z-10">
+              <div className="flex -space-x-3">
+                {urgentAlerts.slice(0, 3).map(s => (
+                  <div key={s.id} title={s.name} className="w-10 h-10 rounded-xl bg-card border-2 border-accent/20 flex items-center justify-center text-accent shadow-sm">
+                    <IconRenderer name={s.icon} size={18} fallback={<span className="font-black text-[10px]">{s.name.charAt(0)}</span>} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Bento Layout Grid with Staggered Entrance */}
+      <motion.div 
+        initial="hidden"
+        animate="visible"
+        variants={{
+          visible: { transition: { staggerChildren: 0.05 } }
+        }}
+        className="grid grid-cols-12 grid-rows-10 gap-5 lg:h-[750px]"
+      >
+        {/* Main Stat Card - Monthly Expense */}
+        <motion.div 
+          variants={{
+            hidden: { opacity: 0, scale: 0.95 },
+            visible: { opacity: 1, scale: 1 }
+          }}
+          className="col-span-12 md:col-span-8 row-span-4 bg-accent rounded-[3rem] p-10 flex flex-col justify-between group relative overflow-hidden shadow-2xl shadow-accent/20"
+        >
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl group-hover:bg-white/10 transition-colors" />
+          
+          <div className="relative z-10">
+            <p className="text-[10px] font-black text-white/50 uppercase tracking-[0.3em] mb-2">Despesa Mensal Estimada</p>
+            <h3 className="text-6xl font-black text-white tracking-tighter tabular-nums drop-shadow-sm">
+              {formatCurrency(stats.monthlyTotal, currency)}
+            </h3>
+          </div>
+
+          <div className="relative z-10 flex items-center justify-between bg-white/10 backdrop-blur-md p-4 rounded-3xl border border-white/10">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                <CreditCard size={14} className="text-white" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black text-white uppercase tracking-widest">{stats.activeCount} Subscrições Ativas</p>
+                <p className="text-[9px] text-white/60 font-bold uppercase mt-0.5">Renovações Mensais</p>
+              </div>
+            </div>
+            <ArrowRight size={20} className="text-white/40 group-hover:text-white transition-all transform group-hover:translate-x-1" />
+          </div>
+        </motion.div>
+
+        {/* Monthly Budget & Annual Projection Card */}
+        <motion.div 
+          variants={{
+            hidden: { opacity: 0, scale: 0.95 },
+            visible: { opacity: 1, scale: 1 }
+          }}
+          className="col-span-12 md:col-span-4 row-span-4 bg-card rounded-[3rem] border border-border-dim p-8 flex flex-col justify-between group hover:border-accent transition-all shadow-xl shadow-bg"
+        >
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.3em]">Orçamento Mensal</p>
+              {userProfile?.monthlyBudget && (
+                <span className={cn(
+                  "text-[10px] font-black uppercase tracking-widest",
+                  stats.monthlyTotal > userProfile.monthlyBudget ? "text-red-500" : "text-health"
+                )}>
+                  {Math.round((stats.monthlyTotal / userProfile.monthlyBudget) * 100)}%
+                </span>
+              )}
+            </div>
+            
+            {userProfile?.monthlyBudget ? (
+              <div className="space-y-4">
+                <h3 className="text-3xl font-black text-text-main tracking-tight tabular-nums">
+                  {formatCurrency(userProfile.monthlyBudget - stats.monthlyTotal, currency)}
+                  <span className="text-[10px] text-text-muted ml-2 font-black uppercase tracking-widest opacity-50">Restantes</span>
+                </h3>
+                <div className="h-3 bg-bg rounded-full overflow-hidden border border-border-dim/50">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min((stats.monthlyTotal / userProfile.monthlyBudget) * 100, 100)}%` }}
+                    className={cn(
+                      "h-full rounded-full transition-all duration-1000",
+                      stats.monthlyTotal > userProfile.monthlyBudget ? "bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)]" : "bg-health shadow-[0_0_15px_rgba(34,197,94,0.4)]"
+                    )}
+                  />
+                </div>
+                <p className="text-[9px] text-text-muted font-bold uppercase tracking-[0.1em]">
+                  Total Faturado: {formatCurrency(stats.monthlyTotal, currency)}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <h3 className="text-2xl font-black text-text-main tracking-tight opacity-50">Sem Orçamento</h3>
+                <p className="text-[10px] text-text-muted font-bold uppercase leading-relaxed">
+                  Define um limite mensal nas <span className="text-accent underline">definições</span> para monitorizares as tuas poupanças.
+                </p>
+              </div>
+            )}
+          </div>
+          
+          <div className="pt-6 border-t border-border-dim/50">
+            <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.3em] mb-2">Projeção Anual</p>
+            <p className="text-xl font-black text-text-main tracking-tight tabular-nums">
+              {formatCurrency(stats.yearlyTotal, currency)}
             </p>
           </div>
-          <div className="flex gap-1 h-1 mt-6">
+        </motion.div>
+
+        {/* Category Breakdown Card */}
+        <motion.div 
+          variants={{
+            hidden: { opacity: 0, scale: 0.95 },
+            visible: { opacity: 1, scale: 1 }
+          }}
+          className="col-span-12 md:col-span-5 row-span-6 bg-card rounded-[3rem] border border-border-dim p-8 flex flex-col group hover:border-accent transition-all shadow-xl shadow-bg"
+        >
+          <div className="flex items-center justify-between mb-8">
+            <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.3em]">Distribuição</p>
+            <TrendingUp size={18} className="text-text-muted group-hover:text-accent transition-colors" />
+          </div>
+          
+          <div className="space-y-6 flex-1 overflow-y-auto pr-2 custom-scrollbar">
             {stats.categories.map((cat, i) => (
-              <div 
-                key={cat.name} 
-                className="h-full rounded-full" 
-                style={{ 
-                  flex: cat.value, 
-                  backgroundColor: `var(--color-${['streaming', 'software', 'gaming', 'health'][i % 4]})` 
-                }}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Subscription List Summary */}
-        <div className="col-span-5 row-span-6 bg-card rounded-3xl border border-border-dim p-6 flex flex-col overflow-hidden group hover:border-accent transition-all">
-          <p className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-6">Subscrições Ativas ({stats.activeCount})</p>
-          <div className="flex-1 overflow-y-auto space-y-1 pr-2 custom-scrollbar">
-            {stats.upcoming.length > 0 ? subscriptions.filter(s => s.status === 'active').slice(0, 7).map((sub) => (
-              <div key={sub.id} className="flex items-center justify-between py-3 border-b border-border-dim/50 last:border-0 hover:bg-bg/50 px-2 rounded-xl transition-all">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-bg border border-border-dim flex items-center justify-center font-bold text-accent">
-                    {sub.name.charAt(0)}
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-text-main">{sub.name}</p>
-                    <p className="text-[10px] text-text-muted font-bold uppercase">{sub.category}</p>
-                  </div>
+              <div key={cat.name} className="space-y-2">
+                <div className="flex justify-between items-center px-1">
+                  <span className="text-[11px] font-black text-text-main uppercase tracking-widest">{cat.name}</span>
+                  <span className="text-[11px] font-black text-text-muted tabular-nums">{formatCurrency(cat.value, currency)}</span>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold text-text-main">{formatCurrency(sub.amount, currency)}</p>
-                  <p className="text-[10px] text-text-muted font-bold text-accent">Dia {sub.billingDay}</p>
+                <div className="h-3 bg-bg rounded-full overflow-hidden border border-border-dim/50">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(cat.value / stats.monthlyTotal) * 100}%` }}
+                    transition={{ delay: 0.8 + (i * 0.1) }}
+                    className="h-full bg-accent rounded-full shadow-lg shadow-accent/20"
+                  />
                 </div>
-              </div>
-            )) : (
-              <p className="text-center text-xs text-text-muted mt-20 italic">Sem subscrições activas</p>
-            )}
-          </div>
-        </div>
-
-        {/* Upcoming Payments List */}
-        <div className="col-span-3 row-span-4 bg-card rounded-3xl border border-border-dim p-6 group hover:border-accent transition-all">
-          <p className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-6">Próximos Pagamentos</p>
-          <div className="space-y-6">
-            {stats.upcoming.length > 0 ? stats.upcoming.slice(0, 3).map((sub, idx) => (
-              <div key={sub.id} className={cn(
-                "pl-4 border-l-2",
-                idx === 0 ? "border-accent" : "border-border-dim"
-              )}>
-                <p className="text-xs font-bold text-text-main">{idx === 0 ? 'Amanhã' : idx === 1 ? 'Em breve' : format(sub.nextDate, 'd MMM', { locale: pt })}</p>
-                <p className="text-[11px] text-text-muted font-medium truncate">{sub.name} • {formatCurrency(sub.amount, currency)}</p>
-              </div>
-            )) : (
-              <p className="text-xs text-text-muted italic">Sem pagamentos próximos</p>
-            )}
-          </div>
-        </div>
-
-        {/* Yearly Projection */}
-        <div className="col-span-4 row-span-3 bg-card rounded-3xl border border-border-dim p-6 flex flex-col justify-between group hover:border-accent transition-all">
-          <p className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-4">Projeção Anual</p>
-          <h3 className="text-3xl font-black text-text-main tracking-tighter">{formatCurrency(stats.yearlyTotal, currency)}</h3>
-          <p className="text-[11px] text-text-muted leading-relaxed mt-4">Estimativa baseada nos teus consumos actuais e ciclos de facturação.</p>
-        </div>
-
-        {/* Distribution Breakdown */}
-        <div className="col-span-3 row-span-2 bg-card rounded-3xl border border-border-dim p-6 group hover:border-accent transition-all">
-          <p className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-4">Distribuição</p>
-          <div className="space-y-2">
-            {stats.categories.slice(0, 3).map((cat, i) => (
-              <div key={cat.name} className="flex items-center gap-2 text-xs font-bold text-text-muted">
-                <div 
-                  className="w-2 h-2 rounded-full" 
-                  style={{ backgroundColor: `var(--color-${['streaming', 'software', 'gaming', 'health'][i % 4]})` }}
-                />
-                <span className="truncate">{cat.name}</span>
-                <span className="ml-auto text-text-main">{Math.round((cat.value / stats.monthlyTotal) * 100)}%</span>
               </div>
             ))}
           </div>
-        </div>
+        </motion.div>
 
         {/* Saving Insights Big Card */}
-        <div className="col-span-7 row-span-4 bg-bg rounded-3xl border border-border-dim p-6 flex flex-col group hover:border-accent transition-all">
-          <p className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-6">Insights de Poupança</p>
-          <div className="grid grid-cols-2 gap-4 flex-1">
-            <div className="bg-accent/5 border border-accent/20 p-5 rounded-2xl flex gap-4 items-start">
-              <div className="text-2xl">💡</div>
-              <div>
-                <p className="text-sm font-bold text-text-main mb-1">Serviços Inativos</p>
-                <p className="text-[11px] text-text-muted leading-relaxed">Considera rever subscrições que não utilizas há mais de 30 dias.</p>
+        <motion.div 
+          variants={{
+            hidden: { opacity: 0, scale: 0.95 },
+            visible: { opacity: 1, scale: 1 }
+          }}
+          className="col-span-12 md:col-span-7 row-span-6 bg-bg rounded-[3rem] border border-border-dim p-10 flex flex-col group hover:border-accent transition-all shadow-xl shadow-bg"
+        >
+          <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.3em] mb-10">Insights Inteligentes</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 flex-1">
+            {insights.length > 0 ? insights.map((insight, idx) => (
+              <div 
+                key={idx} 
+                className={cn(
+                  "p-6 rounded-[2rem] flex gap-5 items-start border transition-all hover:scale-[1.02]",
+                  insight.type === 'warning' ? "bg-red-500/5 border-red-500/10" : "bg-accent/5 border-accent/10"
+                )}
+              >
+                <div className="text-3xl filter grayscale group-hover:grayscale-0 transition-all">{insight.icon}</div>
+                <div>
+                  <p className={cn(
+                    "text-xs font-black mb-1.5 uppercase tracking-widest",
+                    insight.type === 'warning' ? "text-red-500" : "text-accent"
+                  )}>{insight.title}</p>
+                  <p className="text-[10px] text-text-muted font-bold leading-relaxed uppercase tracking-wider">{insight.description}</p>
+                </div>
               </div>
-            </div>
-            <div className="bg-amber-500/5 border border-amber-500/20 p-5 rounded-2xl flex gap-4 items-start">
-              <div className="text-2xl">⚡</div>
-              <div>
-                <p className="text-sm font-bold text-amber-500 mb-1">Upgrade disponível</p>
-                <p className="text-[11px] text-text-muted leading-relaxed">Planos anuais podem poupar-te até 20% do valor mensal.</p>
+            )) : (
+              <div className="col-span-2 flex flex-col items-center justify-center py-12 text-center bg-bg border border-dashed border-border-dim rounded-[2rem]">
+                <div className="w-16 h-16 bg-accent/5 rounded-full flex items-center justify-center mb-4">
+                  <span className="text-3xl">⭐</span>
+                </div>
+                <p className="text-xs font-black text-text-main tracking-tight uppercase">Nada a melhorar por agora!</p>
+                <p className="text-[9px] text-text-muted font-black uppercase mt-2 tracking-[0.2em] opacity-60">As tuas finanças parecem otimizadas.</p>
               </div>
-            </div>
+            )}
           </div>
-          <div className="mt-auto pt-6 flex justify-center">
-            <button className="bg-accent hover:bg-accent/90 text-white px-8 py-3 rounded-2xl text-xs font-bold transition-all shadow-xl shadow-accent/20">
-              EXPLORAR TODAS AS DICAS
+          <div className="mt-auto pt-10 flex justify-center">
+            <button className="bg-accent hover:bg-accent/90 text-white px-10 py-4 rounded-2xl text-[10px] font-black tracking-[0.25em] transition-all shadow-2xl shadow-accent/30 uppercase active:scale-95">
+              Refinar Sugestões
             </button>
           </div>
-        </div>
-
-        {/* Mini Calendar Card */}
-        <div className="col-span-5 row-span-4 bg-card rounded-3xl border border-border-dim p-6 group hover:border-accent transition-all">
-          <p className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-4">Calendário {format(new Date(), 'MMMM', { locale: pt })}</p>
-          <div className="grid grid-cols-7 gap-1 text-center">
-            {['S','T','Q','Q','S','S','D'].map((d, idx) => (
-               <div key={idx} className="text-[9px] font-bold text-text-muted py-2">{d}</div>
-            ))}
-            {/* Mocking a small grid for visual theme */}
-            {Array.from({length: 31}).map((_, i) => {
-              const day = i + 1;
-              const isToday = day === new Date().getDate();
-              const hasPayment = stats.activeCount > 0 && subscriptions.some(s => s.billingDay === day);
-              return (
-                <div 
-                  key={i} 
-                  className={cn(
-                    "aspect-square flex items-center justify-center text-[10px] rounded-lg transition-all",
-                    isToday ? "bg-accent text-white font-bold" : "text-text-muted hover:bg-bg",
-                    hasPayment && !isToday && "border border-accent/30 text-accent font-bold"
-                  )}
-                >
-                  {day}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </div>
   );
 }

@@ -8,7 +8,16 @@
         "email": { "type": "string", "format": "email" },
         "displayName": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
-        "currency": { "type": "string", "enum": ["USD", "EUR", "GBP"] }
+        "currency": { "type": "string", "enum": ["USD", "EUR", "GBP", "BRL"] },
+        "notifications": {
+          "type": "object",
+          "properties": {
+            "billingReminders": { "type": "boolean" },
+            "reminderDays": { "type": "number" },
+            "usageAlerts": { "type": "boolean" },
+            "spendingLimit": { "type": "number" }
+          }
+        }
       },
       "required": ["email", "createdAt"]
     },
@@ -21,7 +30,7 @@
         "name": { "type": "string" },
         "amount": { "type": "number" },
         "currency": { "type": "string" },
-        "billingCycle": { "type": "string", "enum": ["monthly", "annual"] },
+        "billingCycle": { "type": "string", "enum": ["monthly", "annual", "weekly", "yearly"] },
         "billingDay": { "type": "number" },
         "category": { "type": "string" },
         "status": { "type": "string", "enum": ["active", "cancelled"] },

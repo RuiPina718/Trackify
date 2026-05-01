@@ -1,10 +1,11 @@
-export type BillingCycle = 'monthly' | 'annual';
+export type BillingCycle = 'monthly' | 'annual' | 'weekly' | 'yearly';
 export type SubscriptionStatus = 'active' | 'cancelled';
 
 export interface Subscription {
   id: string;
   userId: string;
   name: string;
+  icon?: string;
   amount: number;
   currency: string;
   billingCycle: BillingCycle;
@@ -17,12 +18,22 @@ export interface Subscription {
   updatedAt: string;
 }
 
+export interface NotificationPreferences {
+  billingReminders: boolean;
+  reminderDays: number;
+  usageAlerts: boolean;
+  spendingLimit?: number;
+}
+
 export interface UserProfile {
   uid: string;
   email: string;
   displayName?: string;
   createdAt: string;
   currency: string;
+  theme?: 'light' | 'dark';
+  notifications?: NotificationPreferences;
+  monthlyBudget?: number;
 }
 
 export interface Category {
