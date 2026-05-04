@@ -10,7 +10,11 @@ interface Message {
   timestamp: Date;
 }
 
-export default function Chatbot() {
+interface ChatbotProps {
+  userId: string;
+}
+
+export default function Chatbot({ userId }: ChatbotProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [input, setInput] = useState('');
@@ -52,7 +56,7 @@ export default function Chatbot() {
         parts: [{ text: m.text }]
       }));
 
-      const response = await getGeminiResponse(userMessage, history);
+      const response = await getGeminiResponse(userMessage, history, userId);
       
       if (response) {
         setMessages(prev => [...prev, {

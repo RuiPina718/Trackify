@@ -22,6 +22,14 @@ interface SubscriptionListProps {
   currency?: string;
 }
 
+const getMonthName = (month: number) => {
+  const months = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+  ];
+  return months[month - 1] || '';
+};
+
 export default function SubscriptionList({ userId, onEdit, currency = 'EUR' }: SubscriptionListProps) {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
@@ -166,7 +174,14 @@ export default function SubscriptionList({ userId, onEdit, currency = 'EUR' }: S
                 </div>
                 <div className="text-right">
                   <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.3em] mb-1.5">Renovação</p>
-                  <p className="text-sm font-black text-accent uppercase tracking-widest">Dia {sub.billingDay}</p>
+                  <p className="text-sm font-black text-accent uppercase tracking-widest text-right">
+                    Dia {sub.billingDay}
+                    {(sub.billingCycle === 'yearly' || sub.billingCycle === 'annual') && sub.billingMonth && (
+                      <span className="block text-[8px] opacity-70">
+                        {getMonthName(sub.billingMonth)}
+                      </span>
+                    )}
+                  </p>
                 </div>
               </div>
 

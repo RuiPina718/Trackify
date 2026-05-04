@@ -260,7 +260,7 @@ export default function Shell({ user }: ShellProps) {
         editSubscription={editSubscription}
         defaultCurrency={userProfile?.currency}
       />
-      <Chatbot />
+      <Chatbot userId={user.uid} />
     </div>
   );
 }

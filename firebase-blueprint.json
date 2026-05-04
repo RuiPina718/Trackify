@@ -32,6 +32,7 @@
         "currency": { "type": "string" },
         "billingCycle": { "type": "string", "enum": ["monthly", "annual", "weekly", "yearly"] },
         "billingDay": { "type": "number" },
+        "billingMonth": { "type": "number" },
         "category": { "type": "string" },
         "status": { "type": "string", "enum": ["active", "cancelled"] },
         "startDate": { "type": "string", "format": "date" },

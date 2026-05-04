@@ -29,6 +29,7 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
     amount: '',
     currency: defaultCurrency,
     billingDay: '1',
+    billingMonth: (new Date().getMonth() + 1).toString(),
     billingCycle: 'monthly' as BillingCycle,
     category: PREDEFINED_CATEGORIES[0].name,
     startDate: new Date().toISOString().split('T')[0],
@@ -50,6 +51,7 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
         amount: editSubscription.amount.toString(),
         currency: editSubscription.currency || defaultCurrency,
         billingDay: editSubscription.billingDay.toString(),
+        billingMonth: (editSubscription.billingMonth || (new Date().getMonth() + 1)).toString(),
         billingCycle: editSubscription.billingCycle,
         category: editSubscription.category,
         startDate: editSubscription.startDate,
@@ -61,6 +63,7 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
         amount: '',
         currency: defaultCurrency,
         billingDay: '1',
+        billingMonth: (new Date().getMonth() + 1).toString(),
         billingCycle: 'monthly',
         category: PREDEFINED_CATEGORIES[0].name,
         startDate: new Date().toISOString().split('T')[0],
@@ -102,6 +105,7 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
           currency: formData.currency,
           billingCycle: formData.billingCycle,
           billingDay: parseInt(formData.billingDay),
+          billingMonth: (formData.billingCycle === 'yearly' || formData.billingCycle === 'annual') ? parseInt(formData.billingMonth) : undefined,
           category: formData.category,
           startDate: formData.startDate,
         });
@@ -114,6 +118,7 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
           currency: formData.currency,
           billingCycle: formData.billingCycle,
           billingDay: parseInt(formData.billingDay),
+          billingMonth: (formData.billingCycle === 'yearly' || formData.billingCycle === 'annual') ? parseInt(formData.billingMonth) : undefined,
           category: formData.category,
           status: 'active' as SubscriptionStatus,
           startDate: formData.startDate,
@@ -251,7 +256,7 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className={cn("grid gap-4", (formData.billingCycle === 'yearly' || formData.billingCycle === 'annual') ? "grid-cols-3" : "grid-cols-2")}>
                     <div>
                       <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-2 ml-1">Dia de Cobrança</label>
                       <div className="relative">
@@ -267,6 +272,34 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
                         />
                       </div>
                     </div>
+
+                    {(formData.billingCycle === 'yearly' || formData.billingCycle === 'annual') && (
+                      <div>
+                        <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-2 ml-1">Mês</label>
+                        <div className="relative">
+                          <select
+                            value={formData.billingMonth}
+                            onChange={(e) => setFormData({...formData, billingMonth: e.target.value})}
+                            className="w-full px-4 py-4 bg-bg border border-border-dim rounded-2xl text-xs text-text-main font-black focus:ring-2 focus:ring-accent outline-none transition-all appearance-none cursor-pointer"
+                          >
+                            <option value="1">Janeiro</option>
+                            <option value="2">Fevereiro</option>
+                            <option value="3">Março</option>
+                            <option value="4">Abril</option>
+                            <option value="5">Maio</option>
+                            <option value="6">Junho</option>
+                            <option value="7">Julho</option>
+                            <option value="8">Agosto</option>
+                            <option value="9">Setembro</option>
+                            <option value="10">Outubro</option>
+                            <option value="11">Novembro</option>
+                            <option value="12">Dezembro</option>
+                          </select>
+                          <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+                        </div>
+                      </div>
+                    )}
+
                     <div>
                       <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-2 ml-1">Ciclo</label>
                       <div className="relative">

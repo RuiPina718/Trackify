@@ -6,6 +6,7 @@ import {
   doc, 
   query, 
   where, 
+  getDocs,
   onSnapshot,
   serverTimestamp,
   Timestamp,
@@ -16,6 +17,21 @@ import { db, OperationType, handleFirestoreError } from '../lib/firebase';
 import { Subscription } from '../types';
 
 const COLLECTION_NAME = 'subscriptions';
+
+export const getUserSubscriptions = async (userId: string) => {
+  try {
+    const q = query(collection(db, COLLECTION_NAME), where('userId', '==', userId));
+    const querySnapshot = await getDocs(q);
+    const subs: Subscription[] = [];
+    querySnapshot.forEach((doc) => {
+      subs.push({ id: doc.id, ...doc.data() } as Subscription);
+    });
+    return subs;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, COLLECTION_NAME);
+    throw error;
+  }
+};
 
 export const subscribeToUserSubscriptions = (
   userId: string, 

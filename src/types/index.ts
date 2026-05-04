@@ -10,6 +10,7 @@ export interface Subscription {
   currency: string;
   billingCycle: BillingCycle;
   billingDay: number;
+  billingMonth?: number;
   category: string;
   status: SubscriptionStatus;
   startDate: string;

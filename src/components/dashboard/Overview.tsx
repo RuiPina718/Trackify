@@ -61,8 +61,17 @@ export default function Dashboard({ userId, userProfile }: DashboardProps) {
     // Upcoming payments (next 7 days)
     const today = new Date();
     const upcoming = active.map(s => {
-      const nextDate = new Date(today.getFullYear(), today.getMonth(), s.billingDay);
-      if (nextDate < today) nextDate.setMonth(nextDate.getMonth() + 1);
+      let nextDate: Date;
+      
+      if (s.billingCycle === 'yearly' || s.billingCycle === 'annual') {
+        const month = (s.billingMonth || 1) - 1;
+        nextDate = new Date(today.getFullYear(), month, s.billingDay);
+        if (nextDate < today) nextDate.setFullYear(today.getFullYear() + 1);
+      } else {
+        nextDate = new Date(today.getFullYear(), today.getMonth(), s.billingDay);
+        if (nextDate < today) nextDate.setMonth(nextDate.getMonth() + 1);
+      }
+      
       return { ...s, nextDate };
     }).sort((a, b) => a.nextDate.getTime() - b.nextDate.getTime())
       .filter(s => s.nextDate < addDays(today, 7));
