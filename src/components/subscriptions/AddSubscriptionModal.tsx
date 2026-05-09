@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Plus, DollarSign, Calendar, Tag, ChevronDown, Save, Zap } from 'lucide-react';
-import { PREDEFINED_CATEGORIES, BillingCycle, SubscriptionStatus, Subscription, Category } from '../../types';
+import { PREDEFINED_CATEGORIES, BillingCycle, SubscriptionStatus, Subscription, Category, CATEGORY_COLORS, CATEGORY_ICONS } from '../../types';
 import { createSubscription, updateSubscription } from '../../services/subscriptionService';
-import { subscribeToUserCategories, createCategory } from '../../services/categoryService';
+import { createCategory } from '../../services/categoryService';
+import { useUnifiedCategories } from '../../hooks/useUnifiedCategories';
 import { SUBSCRIPTION_TEMPLATES, SubscriptionTemplate } from '../../constants/templates';
 import { cn } from '../../lib/utils';
 
@@ -19,10 +20,11 @@ interface AddSubscriptionModalProps {
 
 export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubscription, defaultCurrency = 'EUR' }: AddSubscriptionModalProps) {
   const [loading, setLoading] = useState(false);
-  const [userCategories, setUserCategories] = useState<Category[]>([]);
+  const { categories } = useUnifiedCategories(userId);
   const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [selectedColor, setSelectedColor] = useState('#6366f1');
+  const [selectedIcon, setSelectedIcon] = useState('Tag');
   const [formData, setFormData] = useState({
     name: '',
     icon: '',
@@ -34,14 +36,6 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
     category: PREDEFINED_CATEGORIES[0].name,
     startDate: new Date().toISOString().split('T')[0],
   });
-
-  useEffect(() => {
-    if (!userId) return;
-    const unsub = subscribeToUserCategories(userId, (cats) => {
-      setUserCategories(cats);
-    });
-    return () => unsub();
-  }, [userId]);
 
   useEffect(() => {
     if (editSubscription) {
@@ -71,15 +65,14 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
     }
   }, [editSubscription, isOpen, defaultCurrency]);
 
-  const allCategories = [...PREDEFINED_CATEGORIES.map(c => c.name), ...userCategories.map(c => c.name)];
-
   const handleAddCategory = async () => {
     if (!newCategoryName.trim()) return;
     setLoading(true);
     try {
-      await createCategory(userId, newCategoryName.trim(), selectedColor);
+      await createCategory(userId, newCategoryName.trim(), selectedColor, undefined, selectedIcon);
       setFormData({...formData, category: newCategoryName.trim()});
       setNewCategoryName('');
+      setSelectedIcon('Tag');
       setShowNewCategoryInput(false);
     } catch (error) {
       console.error(error);
@@ -88,45 +81,45 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
     }
   };
 
-  const CATEGORY_COLORS = [
-    '#6366f1', '#10b981', '#f43f5e', '#06b6d4', '#eab308', 
-    '#8b5cf6', '#f97316', '#ec4899', '#71717a', '#000000'
-  ];
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
+      const billingCycleValue = formData.billingCycle;
+      const isYearlyOrAnnual = billingCycleValue === 'yearly' || billingCycleValue === 'annual';
+      
+      const subscriptionData: any = {
+        name: formData.name,
+        icon: formData.icon,
+        amount: parseFloat(formData.amount) || 0,
+        currency: formData.currency,
+        billingCycle: billingCycleValue,
+        billingDay: parseInt(formData.billingDay) || 1,
+        category: formData.category,
+        startDate: formData.startDate,
+      };
+
+      if (isYearlyOrAnnual) {
+        subscriptionData.billingMonth = parseInt(formData.billingMonth);
+      } else {
+        subscriptionData.billingMonth = null;
+      }
+
       if (editSubscription) {
-        await updateSubscription(editSubscription.id, {
-          name: formData.name,
-          icon: formData.icon,
-          amount: parseFloat(formData.amount),
-          currency: formData.currency,
-          billingCycle: formData.billingCycle,
-          billingDay: parseInt(formData.billingDay),
-          billingMonth: (formData.billingCycle === 'yearly' || formData.billingCycle === 'annual') ? parseInt(formData.billingMonth) : undefined,
-          category: formData.category,
-          startDate: formData.startDate,
-        });
+        await updateSubscription(editSubscription.id, subscriptionData);
       } else {
         await createSubscription({
+          ...subscriptionData,
           userId,
-          name: formData.name,
-          icon: formData.icon,
-          amount: parseFloat(formData.amount),
-          currency: formData.currency,
-          billingCycle: formData.billingCycle,
-          billingDay: parseInt(formData.billingDay),
-          billingMonth: (formData.billingCycle === 'yearly' || formData.billingCycle === 'annual') ? parseInt(formData.billingMonth) : undefined,
-          category: formData.category,
           status: 'active' as SubscriptionStatus,
-          startDate: formData.startDate,
         });
       }
       onClose();
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      console.error('Erro ao guardar subscrição:', error);
+      alert('Erro ao guardar: ' + (error.message || 'Ocorreu um erro inesperado.'));
     } finally {
       setLoading(false);
     }
@@ -148,16 +141,16 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-card w-full max-w-xl rounded-[2.5rem] border border-border-dim shadow-2xl overflow-hidden flex flex-col md:flex-row"
+              className="bg-card w-full max-w-xl rounded-[2.5rem] border border-border-dim shadow-2xl overflow-hidden flex flex-col md:flex-row h-auto max-h-[90vh]"
             >
               {/* Left Side - Visual Style */}
-              <div className="hidden md:flex md:w-1/3 bg-bg p-10 flex-col justify-between text-text-main border-r border-border-dim">
+              <div className="hidden md:flex md:w-1/3 bg-bg p-10 flex-col justify-between text-text-main border-r border-border-dim shrink-0">
                 <div>
-                  <h2 className="text-3xl font-black tracking-tighter mb-4 leading-tight text-accent">
-                    {editSubscription ? 'Editar' : 'Nova'}<br/>Subscrição
+                  <h2 className="text-sm md:text-[0.95rem] font-black tracking-tighter mb-4 leading-tight text-accent uppercase">
+                    {editSubscription ? 'Editar' : 'Nova'} Subscrição
                   </h2>
-                  <div className="w-12 h-1 bg-accent rounded-full mb-8"></div>
-                  <p className="text-xs text-text-muted leading-relaxed font-bold uppercase tracking-wider">
+                  <div className="w-full h-px bg-accent/20 mb-8"></div>
+                  <p className="text-[10px] text-text-muted leading-relaxed font-bold uppercase tracking-wider">
                     {editSubscription ? 'Atualiza os dados do teu serviço.' : 'Preenche os detalhes do serviço para começares a monitorizar.'}
                   </p>
                 </div>
@@ -171,21 +164,27 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
               </div>
 
               {/* Right Side - Form */}
-              <div className="flex-1 p-10">
-                <div className="flex justify-end mb-4">
-                  <button onClick={onClose} className="p-3 text-text-muted hover:text-text-main hover:bg-bg border border-transparent hover:border-border-dim rounded-2xl transition-all">
-                    <X size={20} />
-                  </button>
+              <div className="flex-1 p-6 sm:p-10 overflow-y-auto relative">
+                <button 
+                  onClick={onClose} 
+                  className="absolute top-6 right-6 p-2 sm:p-3 text-text-muted hover:text-text-main hover:bg-bg border border-transparent hover:border-border-dim rounded-2xl transition-all z-20"
+                >
+                  <X size={20} />
+                </button>
+                <div className="flex justify-between items-center mb-6 md:mb-8">
+                  <h2 className="md:hidden text-xl font-black text-accent tracking-tight">
+                    {editSubscription ? 'Editar' : 'Nova'} Subscrição
+                  </h2>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
                   {!editSubscription && (
-                    <div className="mb-8">
-                      <div className="flex items-center gap-2 mb-4 ml-1">
+                    <div className="mb-6 sm:mb-8">
+                      <div className="flex items-center gap-2 mb-3 sm:mb-4 ml-1">
                         <Zap size={14} className="text-accent" />
                         <label className="text-[10px] font-black text-text-muted uppercase tracking-widest">Escolha Rápida</label>
                       </div>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-1.5 sm:gap-2">
                         {SUBSCRIPTION_TEMPLATES.map((tpl) => (
                           <button
                             key={tpl.name}
@@ -199,7 +198,7 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
                                 category: tpl.category
                               });
                             }}
-                            className="px-4 py-2 bg-bg border border-border-dim rounded-xl text-[10px] font-black uppercase tracking-widest text-text-muted hover:border-accent hover:text-accent transition-all active:scale-95 flex items-center gap-2"
+                            className="px-3 sm:px-4 py-1.5 sm:py-2 bg-bg border border-border-dim rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-text-muted hover:border-accent hover:text-accent transition-all active:scale-95 flex items-center gap-1.5 sm:gap-2"
                           >
                             <IconRenderer name={tpl.icon} size={14} />
                             {tpl.name}
@@ -210,41 +209,43 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
                   )}
 
                   <div>
-                    <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-2 ml-1">Nome do Serviço</label>
+                    <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-1.5 sm:mb-2 ml-1">Nome do Serviço</label>
                     <div className="relative">
                       <input
                         required
                         value={formData.name}
                         onChange={(e) => setFormData({...formData, name: e.target.value})}
-                        className="w-full px-6 py-4 bg-bg border border-border-dim rounded-2xl text-sm text-text-main focus:ring-2 focus:ring-accent outline-none transition-all placeholder:text-text-muted/30"
-                        placeholder="Ex: Netflix, Spotify, Gym..."
+                        className="w-full px-5 sm:px-6 py-3.5 sm:py-4 bg-bg border border-border-dim rounded-2xl text-sm text-text-main focus:ring-2 focus:ring-accent outline-none transition-all placeholder:text-text-muted/30"
+                        placeholder="Ex: Netflix, Spotify..."
                       />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="col-span-2">
-                      <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-2 ml-1">Valor</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                    <div className="sm:col-span-2">
+                      <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-1.5 sm:mb-2 ml-1">Valor</label>
                       <div className="relative">
-                        <DollarSign size={16} className="absolute left-6 top-1/2 -translate-y-1/2 text-text-muted" />
+                        <div className="absolute left-5 sm:left-6 top-1/2 -translate-y-1/2 text-text-muted font-black text-sm">
+                          {formData.currency === 'EUR' ? '€' : formData.currency === 'USD' ? '$' : formData.currency === 'GBP' ? '£' : 'R$'}
+                        </div>
                         <input
                           required
                           type="number"
                           step="0.01"
                           value={formData.amount}
                           onChange={(e) => setFormData({...formData, amount: e.target.value})}
-                          className="w-full pl-12 pr-6 py-4 bg-bg border border-border-dim rounded-2xl text-sm text-text-main font-bold focus:ring-2 focus:ring-accent outline-none transition-all"
+                          className="w-full pl-11 sm:pl-14 pr-5 sm:pr-6 py-3.5 sm:py-4 bg-bg border border-border-dim rounded-2xl text-sm text-text-main font-bold focus:ring-2 focus:ring-accent outline-none transition-all"
                           placeholder="0.00"
                         />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-2 ml-1">Moeda</label>
+                      <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-1.5 sm:mb-2 ml-1">Moeda</label>
                       <div className="relative">
                         <select
                           value={formData.currency}
                           onChange={(e) => setFormData({...formData, currency: e.target.value})}
-                          className="w-full px-4 py-4 bg-bg border border-border-dim rounded-2xl text-xs text-text-main font-black focus:ring-2 focus:ring-accent outline-none transition-all appearance-none cursor-pointer"
+                          className="w-full px-4 py-3.5 sm:py-4 bg-bg border border-border-dim rounded-2xl text-xs text-text-main font-black focus:ring-2 focus:ring-accent outline-none transition-all appearance-none cursor-pointer"
                         >
                           <option value="EUR">EUR</option>
                           <option value="USD">USD</option>
@@ -256,11 +257,11 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
                     </div>
                   </div>
 
-                  <div className={cn("grid gap-4", (formData.billingCycle === 'yearly' || formData.billingCycle === 'annual') ? "grid-cols-3" : "grid-cols-2")}>
+                  <div className={cn("grid gap-3 sm:gap-4", (formData.billingCycle === 'yearly' || formData.billingCycle === 'annual') ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-2")}>
                     <div>
-                      <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-2 ml-1">Dia de Cobrança</label>
+                      <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-1.5 sm:mb-2 ml-1">Dia</label>
                       <div className="relative">
-                        <Calendar size={16} className="absolute left-6 top-1/2 -translate-y-1/2 text-text-muted" />
+                        <Calendar size={16} className="absolute left-5 sm:left-6 top-1/2 -translate-y-1/2 text-text-muted" />
                         <input
                           required
                           type="number"
@@ -268,51 +269,51 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
                           max="31"
                           value={formData.billingDay}
                           onChange={(e) => setFormData({...formData, billingDay: e.target.value})}
-                          className="w-full pl-12 pr-6 py-4 bg-bg border border-border-dim rounded-2xl text-sm text-text-main font-bold focus:ring-2 focus:ring-accent outline-none transition-all"
+                          className="w-full pl-11 sm:pl-12 pr-5 sm:pr-6 py-3.5 sm:py-4 bg-bg border border-border-dim rounded-2xl text-sm text-text-main font-bold focus:ring-2 focus:ring-accent outline-none transition-all"
                         />
                       </div>
                     </div>
 
                     {(formData.billingCycle === 'yearly' || formData.billingCycle === 'annual') && (
                       <div>
-                        <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-2 ml-1">Mês</label>
+                        <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-1.5 sm:mb-2 ml-1">Mês</label>
                         <div className="relative">
                           <select
                             value={formData.billingMonth}
                             onChange={(e) => setFormData({...formData, billingMonth: e.target.value})}
-                            className="w-full px-4 py-4 bg-bg border border-border-dim rounded-2xl text-xs text-text-main font-black focus:ring-2 focus:ring-accent outline-none transition-all appearance-none cursor-pointer"
+                            className="w-full px-4 py-3.5 sm:py-4 bg-bg border border-border-dim rounded-2xl text-xs text-text-main font-black focus:ring-2 focus:ring-accent outline-none transition-all appearance-none cursor-pointer"
                           >
-                            <option value="1">Janeiro</option>
-                            <option value="2">Fevereiro</option>
-                            <option value="3">Março</option>
-                            <option value="4">Abril</option>
-                            <option value="5">Maio</option>
-                            <option value="6">Junho</option>
-                            <option value="7">Julho</option>
-                            <option value="8">Agosto</option>
-                            <option value="9">Setembro</option>
-                            <option value="10">Outubro</option>
-                            <option value="11">Novembro</option>
-                            <option value="12">Dezembro</option>
+                            <option value="1">Jan</option>
+                            <option value="2">Fev</option>
+                            <option value="3">Mar</option>
+                            <option value="4">Abr</option>
+                            <option value="5">Mai</option>
+                            <option value="6">Jun</option>
+                            <option value="7">Jul</option>
+                            <option value="8">Ago</option>
+                            <option value="9">Set</option>
+                            <option value="10">Out</option>
+                            <option value="11">Nov</option>
+                            <option value="12">Dez</option>
                           </select>
-                          <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+                          <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
                         </div>
                       </div>
                     )}
 
-                    <div>
-                      <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-2 ml-1">Ciclo</label>
+                    <div className={cn((formData.billingCycle === 'yearly' || formData.billingCycle === 'annual') ? "col-span-2 sm:col-span-1" : "")}>
+                      <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-1.5 sm:mb-2 ml-1">Ciclo</label>
                       <div className="relative">
                         <select
                           value={formData.billingCycle}
                           onChange={(e) => setFormData({...formData, billingCycle: e.target.value as BillingCycle})}
-                          className="w-full px-6 py-4 bg-bg border border-border-dim rounded-2xl text-xs text-text-main font-black focus:ring-2 focus:ring-accent outline-none transition-all appearance-none cursor-pointer"
+                          className="w-full px-5 sm:px-6 py-3.5 sm:py-4 bg-bg border border-border-dim rounded-2xl text-xs text-text-main font-black focus:ring-2 focus:ring-accent outline-none transition-all appearance-none cursor-pointer"
                         >
                           <option value="monthly">Mensal</option>
                           <option value="yearly">Anual</option>
                           <option value="weekly">Semanal</option>
                         </select>
-                        <ChevronDown size={14} className="absolute right-6 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+                        <ChevronDown size={14} className="absolute right-5 sm:right-6 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
                       </div>
                     </div>
                   </div>
@@ -347,7 +348,22 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
                             OK
                           </button>
                         </div>
-                        <div className="flex flex-wrap gap-2 px-1">
+                        <div className="flex flex-wrap gap-2 px-1 items-center">
+                          <div className="flex-1 flex gap-1 bg-bg border border-border-dim rounded-xl p-2 overflow-x-auto">
+                            {CATEGORY_ICONS.map((iconSlug) => (
+                              <button
+                                key={iconSlug}
+                                type="button"
+                                onClick={() => setSelectedIcon(iconSlug)}
+                                className={cn(
+                                  "p-1.5 rounded-lg transition-all flex-shrink-0",
+                                  selectedIcon === iconSlug ? "bg-accent text-white" : "text-text-muted hover:bg-card"
+                                )}
+                              >
+                                <IconRenderer name={iconSlug} size={14} />
+                              </button>
+                            ))}
+                          </div>
                           {CATEGORY_COLORS.map((color) => (
                             <button
                               key={color}
@@ -360,18 +376,40 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
                               style={{ backgroundColor: color }}
                             />
                           ))}
+                          <div className="relative">
+                            <input
+                              type="color"
+                              value={selectedColor}
+                              onChange={(e) => setSelectedColor(e.target.value)}
+                              className="opacity-0 absolute inset-0 w-full h-full cursor-pointer z-10"
+                            />
+                            <div 
+                              className={cn(
+                                "w-6 h-6 rounded-full border-2 border-dashed border-text-muted/50 flex items-center justify-center hover:border-accent transition-all",
+                                !CATEGORY_COLORS.includes(selectedColor) && "border-solid border-accent scale-110"
+                              )}
+                              style={{ backgroundColor: !CATEGORY_COLORS.includes(selectedColor) ? selectedColor : 'transparent' }}
+                            >
+                              <Plus size={10} className={cn(!CATEGORY_COLORS.includes(selectedColor) ? "text-white" : "text-text-muted")} />
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ) : (
                       <div className="relative">
-                        <Tag size={16} className="absolute left-6 top-1/2 -translate-y-1/2 text-text-muted" />
+                        <div className="absolute left-6 top-1/2 -translate-y-1/2 text-text-muted">
+                          <IconRenderer 
+                            name={categories.find(c => c.name === formData.category)?.icon || 'Tag'} 
+                            size={16} 
+                          />
+                        </div>
                         <select
                           value={formData.category}
                           onChange={(e) => setFormData({...formData, category: e.target.value})}
                           className="w-full pl-12 pr-6 py-4 bg-bg border border-border-dim rounded-2xl text-sm text-text-main font-bold focus:ring-2 focus:ring-accent outline-none transition-all appearance-none cursor-pointer"
                         >
-                          {allCategories.map(c => (
-                            <option key={c} value={c}>{c}</option>
+                          {categories.map(c => (
+                            <option key={c.id} value={c.name}>{c.name}</option>
                           ))}
                         </select>
                         <ChevronDown size={16} className="absolute right-6 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />

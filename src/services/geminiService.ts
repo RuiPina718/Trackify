@@ -69,9 +69,17 @@ export const getGeminiResponse = async (
         systemInstruction: `És o Trackify AI, um assistente financeiro inteligente e amigável.
 O teu objetivo é ajudar os utilizadores a gerir as suas subscrições e finanças.
 Dá conselhos práticos, explica termos financeiros de forma simples e ajuda a identificar onde podem poupar.
-Podes adicionar subscrições para o utilizador se ele pedir.
+
+Podes adicionar subscrições para o utilizador se ele pedir. Quando o fizeres, certifica-te de extrair:
+- Nome do serviço
+- Valor (apenas o número)
+- Moeda (EUR, USD, etc)
+- Ciclo (mensal ou anual)
+- Categoria (ex: Saúde, Streaming, Lazer, etc)
+- Dia da cobrança
+
 Podes também listar as subscrições atuais do utilizador para dar conselhos mais precisos.
-Mantém as tuas respostas curtas, profissionais e úteis. Use português de Portugal (PT-PT).`,
+Mantém as tuas respostas curtas, profissionais e úteis. Usa português de Portugal (PT-PT).`,
         temperature: 0.7,
         topP: 0.8,
         topK: 40,
@@ -84,21 +92,27 @@ Mantém as tuas respostas curtas, profissionais e úteis. Use português de Port
       for (const call of functionCalls) {
         if (call.name === "addSubscription") {
           const args = call.args as any;
+          console.log("Gemini calling addSubscription with args:", args);
           
+          // Ensure types are correct for Firestore rules
+          const amount = typeof args.amount === 'string' ? parseFloat(args.amount.replace(',', '.')) : Number(args.amount);
+          const billingDay = Math.floor(typeof args.billingDay === 'string' ? parseInt(args.billingDay) : Number(args.billingDay)) || 1;
+          const billingMonth = args.billingMonth ? Math.floor(Number(args.billingMonth)) : undefined;
+
           await createSubscription({
             userId,
-            name: args.name,
-            amount: args.amount,
-            currency: args.currency || 'EUR',
-            billingCycle: (args.billingCycle === 'anual' || args.billingCycle === 'yearly') ? 'yearly' : 'monthly',
-            category: args.category || 'Outros',
-            billingDay: args.billingDay || 1,
-            billingMonth: (args.billingCycle === 'anual' || args.billingCycle === 'yearly') ? (args.billingMonth || (new Date().getMonth() + 1)) : undefined,
+            name: String(args.name),
+            amount: isNaN(amount) ? 0 : amount,
+            currency: String(args.currency || 'EUR').substring(0, 3).toUpperCase(),
+            billingCycle: (args.billingCycle === 'anual' || args.billingCycle === 'yearly' || args.billingCycle === 'annual') ? 'yearly' : 'monthly',
+            category: String(args.category || 'Outros'),
+            billingDay: billingDay,
+            billingMonth: (args.billingCycle === 'anual' || args.billingCycle === 'yearly' || args.billingCycle === 'annual') ? (billingMonth || (new Date().getMonth() + 1)) : null,
             status: 'active',
             startDate: new Date().toISOString().split('T')[0]
           });
 
-          return `Acabei de adicionar a tua subscrição ao ${args.name} de ${args.amount}${args.currency}. Já podes vê-la na tua lista!`;
+          return `Acabei de adicionar a tua subscrição ao **${args.name}** de **${amount} ${args.currency || 'EUR'}**. Já podes vê-la na tua lista!`;
         }
 
         if (call.name === "listSubscriptions") {
@@ -119,7 +133,12 @@ O teu objetivo é ajudar os utilizadores a gerir as suas subscrições e finanç
 Dá conselhos práticos, explica termos financeiros de forma simples e ajuda a identificar onde podem poupar.
 Podes adicionar subscrições para o utilizador se ele pedir.
 Podes também listar as subscrições atuais do utilizador para dar conselhos mais precisos.
-Mantém as tuas respostas curtas, profissionais e úteis. Use português de Portugal (PT-PT).`,
+Mantém as tuas respostas curtas, profissionais e úteis. Usa português de Portugal (PT-PT).
+
+IMPORTANTE: Formata as tuas respostas usando Markdown para melhor legibilidade:
+- Usa listas com marcadores para múltiplos itens ou dicas.
+- Usa negrito para destacar valores, nomes de serviços ou termos importantes.
+- Usa parágrafos curtos e espaçados.`,
               tools: [{ functionDeclarations: [addSubscriptionTool, listSubscriptionsTool] }],
             },
           });

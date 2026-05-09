@@ -5,6 +5,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMont
 import { pt } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, Info } from 'lucide-react';
 import { cn, formatCurrency } from '../../lib/utils';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface CalendarViewProps {
   userId: string;
@@ -14,6 +15,7 @@ interface CalendarViewProps {
 export default function CalendarView({ userId, currency = 'EUR' }: CalendarViewProps) {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDay, setSelectedDay] = useState<Date | null>(new Date());
   
   useEffect(() => {
     const unsub = subscribeToUserSubscriptions(
@@ -23,6 +25,11 @@ export default function CalendarView({ userId, currency = 'EUR' }: CalendarViewP
     );
     return () => unsub();
   }, [userId]);
+
+  const selectedDaySubs = useMemo(() => {
+    if (!selectedDay) return [];
+    return subscriptions.filter(s => s.status === 'active' && s.billingDay === selectedDay.getDate());
+  }, [selectedDay, subscriptions]);
 
   const days = useMemo(() => {
     const start = startOfMonth(currentMonth);
@@ -87,19 +94,23 @@ export default function CalendarView({ userId, currency = 'EUR' }: CalendarViewP
             const daySubs = subscriptions.filter(s => s.status === 'active' && s.billingDay === day.getDate());
             const hasPayments = daySubs.length > 0;
             const isToday = isSameDay(day, new Date());
+            const isSelected = selectedDay && isSameDay(day, selectedDay);
             
             return (
               <div 
                 key={day.toString()} 
+                onClick={() => setSelectedDay(day)}
                 className={cn(
-                  "bg-card h-44 p-3 border-r border-b border-border-dim transition-colors hover:bg-bg/50 group relative",
-                  isToday && "bg-accent/5"
+                  "bg-card h-44 p-3 border-r border-b border-border-dim transition-all hover:bg-bg/50 group relative cursor-pointer",
+                  isToday && "bg-accent/5",
+                  isSelected && "bg-accent/10 shadow-[inset_0_0_0_2px_rgba(59,130,246,0.3)] z-10"
                 )}
               >
                 <div className="flex justify-between items-start mb-4">
                   <span className={cn(
                     "text-xs font-black w-8 h-8 flex items-center justify-center rounded-xl transition-all",
-                    isToday ? "bg-accent text-white shadow-xl shadow-accent/20" : "text-text-muted group-hover:text-text-main"
+                    isToday ? "bg-accent text-white shadow-xl shadow-accent/20" : 
+                    isSelected ? "bg-accent/20 text-accent" : "text-text-muted group-hover:text-text-main"
                   )}>
                     {day.getDate()}
                   </span>
@@ -108,19 +119,75 @@ export default function CalendarView({ userId, currency = 'EUR' }: CalendarViewP
                   )}
                 </div>
 
-                <div className="space-y-1.5 overflow-y-auto max-h-[100px] custom-scrollbar pr-1">
-                  {daySubs.map(s => (
-                    <div key={s.id} className="p-2 bg-bg border border-border-dim rounded-xl hover:border-accent/30 transition-all cursor-pointer">
-                      <p className="text-[10px] font-bold text-text-main truncate leading-tight tracking-tight">{s.name}</p>
-                      <p className="text-[9px] text-accent font-black">{formatCurrency(s.amount, s.currency || currency)}</p>
+                <div className="space-y-1.5 overflow-hidden">
+                  {daySubs.slice(0, 3).map(s => (
+                    <div key={s.id} className="p-2 bg-bg/50 border border-border-dim/50 rounded-xl transition-all">
+                      <p className="text-[9px] font-black text-text-main truncate uppercase tracking-tight">{s.name}</p>
                     </div>
                   ))}
+                  {daySubs.length > 3 && (
+                    <p className="text-[9px] font-black text-accent uppercase tracking-widest pl-1">+{daySubs.length - 3} mais</p>
+                  )}
                 </div>
               </div>
             );
           })}
         </div>
       </div>
+
+      {selectedDay && (
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={selectedDay.toISOString()}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="bg-card border border-border-dim p-8 rounded-[3rem] shadow-xl shadow-bg"
+          >
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h3 className="text-xl font-black text-text-main tracking-tight uppercase">
+                  {format(selectedDay, "dd 'de' MMMM", { locale: pt })}
+                </h3>
+                <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] mt-1">
+                  {selectedDaySubs.length} {selectedDaySubs.length === 1 ? 'Subscrição' : 'Subscrições'} para este dia
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] mb-1">Total do Dia</p>
+                <p className="text-2xl font-black text-accent">
+                  {formatCurrency(selectedDaySubs.reduce((acc, s) => acc + s.amount, 0), currency)}
+                </p>
+              </div>
+            </div>
+
+            {selectedDaySubs.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {selectedDaySubs.map(s => (
+                  <div key={s.id} className="p-5 bg-bg border border-border-dim rounded-[2rem] flex items-center justify-between group hover:border-accent transition-all">
+                    <div>
+                      <h4 className="text-xs font-black text-text-main uppercase tracking-tight truncate max-w-[120px]">{s.name}</h4>
+                      <p className="text-[9px] font-black text-text-muted uppercase tracking-widest mt-1 opacity-70">{s.category}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-black text-text-main">{formatCurrency(s.amount, s.currency || currency)}</p>
+                      <p className="text-[9px] font-black text-accent uppercase tracking-widest mt-1">{s.billingCycle === 'yearly' ? 'Anual' : 'Mensal'}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-12 flex flex-col items-center text-center opacity-50">
+                <div className="w-16 h-16 bg-bg rounded-[2rem] border border-border-dim flex items-center justify-center mb-4">
+                  <Info size={24} className="text-text-muted" />
+                </div>
+                <p className="text-xs font-black text-text-main uppercase tracking-widest">Sem pagamentos agendados</p>
+                <p className="text-[10px] text-text-muted font-bold uppercase tracking-widest mt-2">{format(selectedDay, "EEEE", { locale: pt })}</p>
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
+      )}
 
       <div className="bg-accent/5 border border-accent/20 text-text-main p-8 rounded-[2.5rem] flex items-center justify-between">
         <div className="flex items-center gap-4">

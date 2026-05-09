@@ -31,18 +31,17 @@ service cloud.firestore {
     }
 
     function isValidSubscription(data) {
-      return data.keys().hasAll(['userId', 'name', 'amount', 'billingCycle', 'billingDay', 'category', 'status', 'createdAt', 'currency']) &&
+      return data.keys().hasAll(['userId', 'name', 'amount', 'billingCycle', 'billingDay', 'category', 'status', 'createdAt']) &&
              data.userId == request.auth.uid &&
              data.name is string && data.name.size() <= 100 &&
              data.amount is number && data.amount >= 0 &&
-             data.currency is string && data.currency.size() <= 3 &&
              data.billingCycle in ['monthly', 'annual', 'weekly', 'yearly'] &&
              data.billingDay is int && data.billingDay >= 1 && data.billingDay <= 31 &&
              (data.get('billingMonth', null) == null || (data.billingMonth is int && data.billingMonth >= 1 && data.billingMonth <= 12)) &&
-             (data.get('icon', null) == null || (data.icon is string && data.icon.size() <= 50)) &&
+             (data.get('icon', null) == null || (data.icon is string && data.icon.size() <= 100)) &&
+             (data.get('currency', null) == null || (data.currency is string && data.currency.size() <= 3)) &&
              (data.get('startDate', null) == null || (data.startDate is string && data.startDate.size() <= 20)) &&
-             data.status in ['active', 'cancelled'] &&
-             data.createdAt == request.time;
+             data.status in ['active', 'cancelled'];
     }
 
     // --- Global Admin Override ---
@@ -55,7 +54,7 @@ service cloud.firestore {
       allow get: if isOwner(userId);
       allow create: if isOwner(userId) && isValidUser(incoming());
       allow update: if isOwner(userId) && (
-        incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'currency', 'notifications', 'theme'])
+        incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'currency', 'notifications', 'theme', 'monthlyBudget'])
       );
     }
 
@@ -64,23 +63,25 @@ service cloud.firestore {
       allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow get: if isSignedIn() && isValidId(subId) && resource.data.userId == request.auth.uid;
       
-      allow create: if isVerified() && 
+      allow create: if isSignedIn() && 
                       isValidId(subId) && 
                       isValidSubscription(incoming()) &&
+                      incoming().createdAt == request.time &&
                       exists(/databases/$(database)/documents/users/$(request.auth.uid));
 
-      allow update: if isVerified() && 
+      allow update: if isSignedIn() && 
                       isValidId(subId) &&
                       existing().userId == request.auth.uid &&
                       incoming().userId == request.auth.uid &&
+                      incoming().createdAt == existing().createdAt &&
+                      incoming().updatedAt == request.time &&
                       (
                         // Action: Update Metadata
                         incoming().diff(existing()).affectedKeys().hasOnly(['name', 'amount', 'billingCycle', 'billingDay', 'billingMonth', 'category', 'status', 'updatedAt', 'currency', 'icon', 'startDate']) &&
-                        incoming().updatedAt == request.time &&
-                        (incoming().status != existing().status || isValidSubscription(incoming()))
+                        isValidSubscription(incoming())
                       );
 
-      allow delete: if isVerified() && isValidId(subId) && existing().userId == request.auth.uid;
+      allow delete: if isSignedIn() && isValidId(subId) && existing().userId == request.auth.uid;
     }
 
     // --- Categories Collection ---
@@ -88,11 +89,18 @@ service cloud.firestore {
       allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || !('userId' in resource.data));
       allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || !('userId' in resource.data));
       
-      allow create: if isVerified() && 
+      allow create: if isSignedIn() && 
                       incoming().userId == request.auth.uid &&
-                      incoming().name is string && incoming().name.size() <= 50;
+                      incoming().name is string && incoming().name.size() <= 50 &&
+                      incoming().color is string && incoming().color.size() <= 20;
+
+      allow update: if isSignedIn() && 
+                      existing().userId == request.auth.uid &&
+                      incoming().userId == request.auth.uid &&
+                      incoming().name is string && incoming().name.size() <= 50 &&
+                      incoming().color is string && incoming().color.size() <= 20;
       
-      allow delete: if isVerified() && existing().userId == request.auth.uid;
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
     }
   }
 }

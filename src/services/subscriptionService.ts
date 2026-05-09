@@ -52,10 +52,20 @@ export const subscribeToUserSubscriptions = (
   });
 };
 
+const cleanSubscriptionData = (data: any) => {
+  const clean: any = {};
+  Object.keys(data).forEach(key => {
+    if (data[key] !== undefined) {
+      clean[key] = data[key];
+    }
+  });
+  return clean;
+};
+
 export const createSubscription = async (data: Omit<Subscription, 'id' | 'createdAt' | 'updatedAt'>) => {
   try {
     const docRef = await addDoc(collection(db, COLLECTION_NAME), {
-      ...data,
+      ...cleanSubscriptionData(data),
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
@@ -69,7 +79,7 @@ export const updateSubscription = async (id: string, data: Partial<Omit<Subscrip
   try {
     const docRef = doc(db, COLLECTION_NAME, id);
     await updateDoc(docRef, {
-      ...data,
+      ...cleanSubscriptionData(data),
       updatedAt: serverTimestamp(),
     });
   } catch (error) {

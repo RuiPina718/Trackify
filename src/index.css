@@ -37,6 +37,19 @@
   body {
     @apply bg-bg text-text-main font-sans;
   }
+
+  .markdown-content p {
+    @apply mb-2 last:mb-0;
+  }
+  .markdown-content ul, .markdown-content ol {
+    @apply mb-2 ml-4 list-disc;
+  }
+  .markdown-content li {
+    @apply mb-1;
+  }
+  .markdown-content strong {
+    @apply font-extrabold text-accent;
+  }
 }
 
 .markdown-body {

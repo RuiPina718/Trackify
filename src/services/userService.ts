@@ -12,6 +12,18 @@ import {
 import { db } from '../lib/firebase';
 import { UserProfile } from '../types';
 
+/**
+ * Removes undefined values from an object to prevent Firestore errors.
+ */
+const cleanObject = <T extends object>(obj: T): T => {
+  return Object.entries(obj).reduce((acc, [key, value]) => {
+    if (value !== undefined) {
+      (acc as any)[key] = value;
+    }
+    return acc;
+  }, {} as T);
+};
+
 export const getUserProfile = async (uid: string): Promise<UserProfile | null> => {
   const docRef = doc(db, 'users', uid);
   const docSnap = await getDoc(docRef);
@@ -37,12 +49,12 @@ export const createUserProfile = async (profile: UserProfile): Promise<void> => 
     }
   }
   
-  await setDoc(doc(db, 'users', profile.uid), profile);
+  await setDoc(doc(db, 'users', profile.uid), cleanObject(profile));
 };
 
 export const updateUserProfile = async (uid: string, data: Partial<UserProfile>): Promise<void> => {
   const docRef = doc(db, 'users', uid);
-  await setDoc(docRef, data, { merge: true });
+  await setDoc(docRef, cleanObject(data), { merge: true });
 };
 
 export const subscribeToUserProfile = (uid: string, callback: (profile: UserProfile) => void) => {
@@ -50,5 +62,7 @@ export const subscribeToUserProfile = (uid: string, callback: (profile: UserProf
     if (doc.exists()) {
       callback({ uid: doc.id, ...doc.data() } as UserProfile);
     }
+  }, (error) => {
+    console.error('Error in subscribeToUserProfile:', error);
   });
 };

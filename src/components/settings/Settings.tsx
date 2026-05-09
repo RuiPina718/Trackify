@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { User, sendPasswordResetEmail } from 'firebase/auth';
-import { UserProfile, NotificationPreferences, Category } from '../../types';
+import { UserProfile, NotificationPreferences, Category, PREDEFINED_CATEGORIES } from '../../types';
 import { getUserProfile, updateUserProfile, createUserProfile } from '../../services/userService';
 import { 
   Settings as SettingsIcon, 
@@ -13,33 +13,94 @@ import {
   CheckCircle2, 
   AlertCircle,
   Key,
+  X,
   Trash2,
+  Plus,
+  Edit2,
+  Check,
   FileJson,
   History,
   Palette,
   LayoutGrid,
   SlidersHorizontal,
+  Tv,
+  Box,
+  Gamepad2,
+  Music,
+  Activity,
+  MoreHorizontal,
+  ShoppingBag,
+  Utensils,
+  Car,
+  Home,
+  Heart,
+  Zap,
+  Coffee,
+  Smartphone,
+  Laptop,
+  Book,
+  Camera,
+  Search,
+  Upload,
+  ImageIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
 import { exportUserDataToJSON } from '../../lib/exportUtils';
 import { collection, getDocs, query, where, writeBatch, doc } from 'firebase/firestore';
 import { db, auth } from '../../lib/firebase';
-import { subscribeToUserCategories, updateCategory, deleteCategory } from '../../services/categoryService';
+import { useUnifiedCategories } from '../../hooks/useUnifiedCategories';
+import { updateCategory, deleteCategory, createCategory } from '../../services/categoryService';
+import { IconRenderer } from '../ui/IconRenderer';
+import DeleteConfirmationModal from '../ui/DeleteConfirmationModal';
+import CategoryModal from './CategoryModal';
+import { CATEGORY_COLORS, CATEGORY_ICONS } from '../../types';
 
 interface SettingsProps {
   user: User;
+  initialTab?: SettingsTab;
 }
 
 type SettingsTab = 'account' | 'preferences' | 'categories' | 'billing' | 'notifications' | 'security';
 
-const Settings: React.FC<SettingsProps> = ({ user }) => {
-  const [activeTab, setActiveTab] = useState<SettingsTab>('account');
+const CURRENCIES = [
+  { code: 'EUR', symbol: '€', name: 'Euro' },
+  { code: 'USD', symbol: '$', name: 'Dólar Americano' },
+  { code: 'GBP', symbol: '£', name: 'Libra Esterlina' },
+  { code: 'BRL', symbol: 'R$', name: 'Real Brasileiro' },
+];
+
+const DICEBEAR_STYLES = [
+  { id: 'avataaars', label: 'Humanos' },
+  { id: 'bottts', label: 'Robôs' },
+  { id: 'lorelei', label: 'Artístico' },
+  { id: 'personas', label: 'Personas' },
+  { id: 'big-smile', label: 'Smiles' },
+  { id: 'adventurer', label: 'Aventuras' }
+];
+
+const AVATARS = [
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
+  'https://api.dicebear.com/7.x/bottts/svg?seed=Aneka',
+  'https://api.dicebear.com/7.x/lorelei/svg?seed=Midnight',
+  'https://api.dicebear.com/7.x/personas/svg?seed=Nala',
+  'https://api.dicebear.com/7.x/big-smile/svg?seed=Toby',
+  'https://api.dicebear.com/7.x/adventurer/svg?seed=Oliver',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Shadow',
+  'https://api.dicebear.com/7.x/bottts/svg?seed=Jasper',
+];
+
+const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
+  const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab || 'account');
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [userCategories, setUserCategories] = useState<Category[]>([]);
+  const { categories: displayCategories, userCategories, loading: categoriesLoading } = useUnifiedCategories(user.uid);
   const [displayName, setDisplayName] = useState('');
+  const [photoURL, setPhotoURL] = useState('');
+  const [bio, setBio] = useState('');
+  const [location, setLocation] = useState('');
   const [currency, setCurrency] = useState('EUR');
-  const [monthlyBudget, setMonthlyBudget] = useState<number | undefined>(undefined);
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const [monthlyBudget, setMonthlyBudget] = useState<number | null>(null);
   const [notifications, setNotifications] = useState<NotificationPreferences>({
     billingReminders: true,
     reminderDays: 3,
@@ -51,6 +112,19 @@ const Settings: React.FC<SettingsProps> = ({ user }) => {
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  
+  // Category Modal State
+  const [isCatModalOpen, setIsCatModalOpen] = useState(false);
+  const [categoryToEdit, setCategoryToEdit] = useState<Category | null>(null);
+  const [isSavingCategory, setIsSavingCategory] = useState(false);
+
+  // Category Deletion Modal State
+  const [catToDelete, setCatToDelete] = useState<Category | null>(null);
+  const [isDeletingCat, setIsDeletingCat] = useState(false);
+  const [avatarSeed, setAvatarSeed] = useState('');
+  const [avatarStyle, setAvatarStyle] = useState('avataaars');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -59,7 +133,11 @@ const Settings: React.FC<SettingsProps> = ({ user }) => {
         if (p) {
           setProfile(p);
           setDisplayName(p.displayName || '');
+          setPhotoURL(p.photoURL || '');
+          setBio(p.bio || '');
+          setLocation(p.location || '');
           setCurrency(p.currency || 'EUR');
+          setTheme(p.theme || 'dark');
           setMonthlyBudget(p.monthlyBudget);
           if (p.notifications) {
             setNotifications(p.notifications);
@@ -74,14 +152,6 @@ const Settings: React.FC<SettingsProps> = ({ user }) => {
     fetchProfile();
   }, [user]);
 
-  useEffect(() => {
-    if (!user.uid) return;
-    const unsub = subscribeToUserCategories(user.uid, (cats) => {
-      setUserCategories(cats);
-    });
-    return () => unsub();
-  }, [user.uid]);
-
   const handleSave = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setSaving(true);
@@ -89,15 +159,19 @@ const Settings: React.FC<SettingsProps> = ({ user }) => {
     try {
       await updateUserProfile(user.uid, {
         displayName,
+        photoURL,
+        bio,
+        location,
         currency,
+        theme,
         monthlyBudget,
         notifications
       });
-      setMessage({ type: 'success', text: 'Definições actualizadas com sucesso!' });
+      setMessage({ type: 'success', text: 'Definições atualizadas com sucesso!' });
       setTimeout(() => setMessage(null), 3000);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving profile:', error);
-      setMessage({ type: 'error', text: 'Erro ao guardar definições. Tenta novamente.' });
+      setMessage({ type: 'error', text: `Erro ao guardar: ${error.message || 'Tenta novamente.'}` });
     } finally {
       setSaving(false);
     }
@@ -160,20 +234,97 @@ const Settings: React.FC<SettingsProps> = ({ user }) => {
     }
   };
 
-  if (loading) {
+  const handleSaveCategory = async (catData: { name: string, color: string, icon: string }) => {
+    setIsSavingCategory(true);
+    try {
+      if (categoryToEdit) {
+        // Mode: Edit
+        if (!categoryToEdit.userId) {
+          // Predefined override
+          await createCategory(user.uid, catData.name, catData.color, categoryToEdit.id, catData.icon);
+        } else {
+          // Update custom/override
+          const oldName = categoryToEdit.name;
+          await updateCategory(categoryToEdit.id, catData);
+
+          if (oldName !== catData.name) {
+            try {
+              const subsRef = collection(db, 'subscriptions');
+              const q = query(subsRef, where('userId', '==', user.uid), where('category', '==', oldName));
+              const snapshot = await getDocs(q);
+              if (!snapshot.empty) {
+                const batch = writeBatch(db);
+                snapshot.docs.forEach((doc) => batch.update(doc.ref, { category: catData.name }));
+                await batch.commit();
+              }
+            } catch (subErr) {
+              console.error('Error updating subscriptions:', subErr);
+            }
+          }
+        }
+        setMessage({ type: 'success', text: 'Categoria atualizada!' });
+      } else {
+        // Mode: Add
+        await createCategory(user.uid, catData.name, catData.color, undefined, catData.icon);
+        setMessage({ type: 'success', text: 'Categoria adicionada!' });
+      }
+      setIsCatModalOpen(false);
+      setCategoryToEdit(null);
+      setTimeout(() => setMessage(null), 3000);
+    } catch (error) {
+      console.error('Error saving category:', error);
+      setMessage({ type: 'error', text: 'Erro ao guardar categoria.' });
+    } finally {
+      setIsSavingCategory(false);
+    }
+  };
+
+  const startEditingCat = (cat: Category) => {
+    setCategoryToEdit(cat);
+    setIsCatModalOpen(true);
+  };
+
+  const handleDeleteCategory = async () => {
+    if (!catToDelete) return;
+    
+    setIsDeletingCat(true);
+    try {
+      await deleteCategory(catToDelete.id);
+      setMessage({ type: 'success', text: 'Categoria removida!' });
+      setCatToDelete(null);
+      setTimeout(() => setMessage(null), 3000);
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      setMessage({ type: 'error', text: 'Erro ao remover categoria.' });
+    } finally {
+      setIsDeletingCat(false);
+    }
+  };
+
+  const handleQuickColorUpdate = async (cat: Category, color: string) => {
+    try {
+      if (!cat.userId) {
+        // Handle predefined category override
+        await createCategory(user.uid, cat.name, color, cat.id, cat.icon);
+      } else {
+        // Handle existing custom/override category
+        await updateCategory(cat.id, { color });
+      }
+      setMessage({ type: 'success', text: 'Cor atualizada!' });
+      setTimeout(() => setMessage(null), 2000);
+    } catch (error) {
+      console.error('Error updating color:', error);
+      setMessage({ type: 'error', text: 'Erro ao atualizar cor.' });
+    }
+  };
+
+  if (loading || categoriesLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
-
-  const currencies = [
-    { code: 'EUR', symbol: '€', name: 'Euro' },
-    { code: 'USD', symbol: '$', name: 'Dólar Americano' },
-    { code: 'GBP', symbol: '£', name: 'Libra Esterlina' },
-    { code: 'BRL', symbol: 'R$', name: 'Real Brasileiro' },
-  ];
 
   const tabs = [
     { id: 'account', label: 'Conta', icon: UserIcon },
@@ -184,10 +335,60 @@ const Settings: React.FC<SettingsProps> = ({ user }) => {
     { id: 'security', label: 'Segurança', icon: Shield },
   ] as const;
 
-  const CATEGORY_COLORS = [
-    '#6366f1', '#10b981', '#f43f5e', '#06b6d4', '#eab308', 
-    '#8b5cf6', '#f97316', '#ec4899', '#71717a', '#000000'
-  ];
+  const handleRandomizeAvatar = () => {
+    const randomSeed = Math.random().toString(36).substring(7);
+    const randomStyle = DICEBEAR_STYLES[Math.floor(Math.random() * DICEBEAR_STYLES.length)].id;
+    setAvatarSeed(randomSeed);
+    setAvatarStyle(randomStyle);
+    setPhotoURL(`https://api.dicebear.com/7.x/${randomStyle}/svg?seed=${randomSeed}`);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processFile(file);
+    }
+  };
+
+  const processFile = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      setMessage({ type: 'error', text: 'Por favor, seleciona um ficheiro de imagem válido.' });
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) { // 2MB limit for base64 storage
+      setMessage({ type: 'error', text: 'A imagem é muito grande. Máximo 2MB para carregar diretamente.' });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      setPhotoURL(dataUrl);
+      setAvatarSeed('');
+      setMessage({ type: 'success', text: 'Imagem carregada com sucesso!' });
+      setTimeout(() => setMessage(null), 3000);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const onDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const onDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      processFile(file);
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto pb-20">
@@ -226,16 +427,169 @@ const Settings: React.FC<SettingsProps> = ({ user }) => {
             className="bg-card border border-border-dim rounded-[2.5rem] p-8 md:p-10 shadow-sm"
           >
             <div className="space-y-8">
-              {/* Conditional Content based on activeTab */}
-              
               {activeTab === 'account' && (
-                <section className="space-y-6">
+                <section className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
                   <div className="flex items-center gap-2 pb-2 border-b border-border-dim">
                     <UserIcon size={18} className="text-accent" />
                     <h3 className="text-sm font-black text-text-main uppercase tracking-widest">Informação da Conta</h3>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-6">
+                  {/* Avatar Selection Container */}
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 p-6 bg-bg/50 border border-border-dim rounded-[2.5rem]">
+                    {/* Preview Area */}
+                    <div className="lg:col-span-3 flex flex-col items-center justify-center space-y-4">
+                      <div 
+                        className={cn(
+                          "relative group cursor-pointer transition-all",
+                          isDragging && "scale-110"
+                        )}
+                        onDragOver={onDragOver}
+                        onDragLeave={onDragLeave}
+                        onDrop={onDrop}
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <div className={cn(
+                          "w-28 h-28 rounded-[2.5rem] overflow-hidden border-2 shadow-2xl bg-card flex items-center justify-center transition-all",
+                          isDragging ? "border-accent bg-accent/10" : "border-accent"
+                        )}>
+                          {photoURL ? (
+                            <img src={photoURL} alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          ) : (
+                            <UserIcon size={44} className="text-text-muted" />
+                          )}
+                          {isDragging && (
+                            <div className="absolute inset-0 bg-accent/20 backdrop-blur-sm flex items-center justify-center text-white">
+                              <Upload size={32} />
+                            </div>
+                          )}
+                        </div>
+                        <div className="absolute -bottom-1 -right-1 p-2.5 bg-accent text-white rounded-2xl shadow-xl ring-4 ring-bg group-hover:scale-110 transition-transform">
+                          <Camera size={16} />
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-[10px] font-black text-text-muted uppercase tracking-widest">O Teu Perfil</p>
+                        {photoURL && (
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPhotoURL('');
+                            }}
+                            className="text-[9px] font-black text-red-500 uppercase tracking-widest mt-2 hover:underline"
+                          >
+                            Remover
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Controls Area */}
+                    <div className="lg:col-span-9 space-y-6">
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <label className="block text-[10px] font-bold text-text-muted uppercase tracking-widest ml-1">Cria o Teu Próprio Avatar</label>
+                          <button 
+                            onClick={() => fileInputRef.current?.click()}
+                            className="flex items-center gap-1.5 text-[9px] font-black text-accent uppercase tracking-widest hover:underline"
+                          >
+                            <Upload size={12} />
+                            Enviar Foto
+                          </button>
+                        </div>
+                        
+                        <input 
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handleFileUpload}
+                          className="hidden"
+                          accept="image/*"
+                        />
+                        
+                        <div className="flex flex-wrap gap-2">
+                          {DICEBEAR_STYLES.map((style) => (
+                            <button
+                              key={style.id}
+                              type="button"
+                              onClick={() => {
+                                setAvatarStyle(style.id);
+                                // Always update URL when style changes, using existing seed or a default one
+                                const currentSeed = avatarSeed || user.uid.substring(0, 5);
+                                if (!avatarSeed) setAvatarSeed(currentSeed);
+                                setPhotoURL(`https://api.dicebear.com/7.x/${style.id}/svg?seed=${currentSeed}`);
+                              }}
+                              className={cn(
+                                "px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all",
+                                avatarStyle === style.id 
+                                  ? "bg-accent text-white shadow-lg shadow-accent/20" 
+                                  : "bg-bg border border-border-dim text-text-muted hover:border-accent hover:text-text-main"
+                              )}
+                            >
+                              {style.label}
+                            </button>
+                          ))}
+                        </div>
+                        
+                        <div className="flex gap-3">
+                          <div className="relative flex-1">
+                            <input
+                              type="text"
+                              value={avatarSeed}
+                              onChange={(e) => {
+                                const seed = e.target.value;
+                                setAvatarSeed(seed);
+                                if (seed) {
+                                  setPhotoURL(`https://api.dicebear.com/7.x/${avatarStyle}/svg?seed=${seed}`);
+                                }
+                              }}
+                              className="w-full px-6 py-4 bg-bg border border-border-dim rounded-2xl text-sm text-text-main font-bold focus:ring-2 focus:ring-accent outline-none transition-all placeholder:text-text-muted/30"
+                              placeholder="Escreve o teu nome ou algo aleatório..."
+                            />
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                               <button
+                                type="button"
+                                onClick={handleRandomizeAvatar}
+                                className="p-2 bg-accent/10 text-accent hover:bg-accent hover:text-white rounded-xl transition-all"
+                                title="Gerar Aleatório"
+                              >
+                                <Zap size={16} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pt-6 border-t border-border-dim/50 space-y-4">
+                        <label className="block text-[10px] font-bold text-text-muted uppercase tracking-widest ml-1">Ou Escolhe um Link</label>
+                        <div className="flex flex-wrap gap-2.5">
+                          {AVATARS.map((url, i) => (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() => {
+                                setPhotoURL(url);
+                                setAvatarSeed(''); // Clear seed when manual picking
+                              }}
+                              className={cn(
+                                "w-11 h-11 rounded-2xl overflow-hidden border-2 transition-all hover:scale-110 shadow-sm",
+                                photoURL === url ? "border-accent scale-110 shadow-lg shadow-accent/20" : "border-transparent opacity-60 hover:opacity-100"
+                              )}
+                            >
+                              <img src={url} alt={`Avatar ${i}`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                            </button>
+                          ))}
+                        </div>
+                        <input
+                          type="text"
+                          value={photoURL}
+                          onChange={(e) => setPhotoURL(e.target.value)}
+                          className="w-full px-5 py-3 bg-bg border border-border-dim rounded-2xl text-xs text-text-muted/70 focus:ring-2 focus:ring-accent outline-none transition-all"
+                          placeholder="Link direto da imagem (URL)..."
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 pt-4">
                     <div>
                       <label className="block text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2 ml-1">Nome de Exibição</label>
                       <input
@@ -247,6 +601,25 @@ const Settings: React.FC<SettingsProps> = ({ user }) => {
                       />
                     </div>
                     <div>
+                      <label className="block text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2 ml-1">Localização</label>
+                      <input
+                        type="text"
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                        className="w-full px-5 py-4 bg-bg border border-border-dim rounded-2xl text-sm text-text-main focus:ring-2 focus:ring-accent outline-none transition-all"
+                        placeholder="Ex: Lisboa, Portugal"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2 ml-1">Bio / Sobre Ti</label>
+                      <textarea
+                        value={bio}
+                        onChange={(e) => setBio(e.target.value)}
+                        className="w-full px-5 py-4 bg-bg border border-border-dim rounded-2xl text-sm text-text-main focus:ring-2 focus:ring-accent outline-none transition-all resize-none h-24"
+                        placeholder="Fala um pouco sobre ti..."
+                      />
+                    </div>
+                    <div>
                       <label className="block text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2 ml-1">Email</label>
                       <input
                         type="email"
@@ -254,7 +627,32 @@ const Settings: React.FC<SettingsProps> = ({ user }) => {
                         disabled
                         className="w-full px-5 py-4 bg-bg border border-border-dim rounded-2xl text-sm text-text-muted cursor-not-allowed outline-none opacity-70"
                       />
-                      <p className="text-[10px] text-text-muted/50 mt-2 ml-1 italic">O email não pode ser alterado diretamente por questões de segurança.</p>
+                      <p className="text-[10px] text-text-muted/50 mt-2 ml-1 italic">O email não pode ser alterado diretamente.</p>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2 ml-1">Moeda</label>
+                      <select
+                        value={currency}
+                        onChange={(e) => setCurrency(e.target.value)}
+                        className="w-full px-5 py-4 bg-bg border border-border-dim rounded-2xl text-sm text-text-main font-bold focus:ring-2 focus:ring-accent outline-none transition-all appearance-none"
+                      >
+                        {CURRENCIES.map(curr => (
+                          <option key={curr.code} value={curr.code}>{curr.code} ({curr.symbol})</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2 ml-1">Orçamento Mensal</label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          value={monthlyBudget === null ? '' : monthlyBudget}
+                          onChange={(e) => setMonthlyBudget(e.target.value === '' ? null : parseFloat(e.target.value))}
+                          className="w-full px-5 py-4 bg-bg border border-border-dim rounded-2xl text-sm text-text-main font-bold focus:ring-2 focus:ring-accent outline-none transition-all"
+                          placeholder="Ex: 100.00"
+                        />
+                        <span className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-black text-text-muted uppercase">{currency}</span>
+                      </div>
                     </div>
                   </div>
                 </section>
@@ -263,100 +661,139 @@ const Settings: React.FC<SettingsProps> = ({ user }) => {
               {activeTab === 'preferences' && (
                 <section className="space-y-6">
                   <div className="flex items-center gap-2 pb-2 border-b border-border-dim">
-                    <SettingsIcon size={18} className="text-accent" />
-                    <h3 className="text-sm font-black text-text-main uppercase tracking-widest">Preferências Globais</h3>
+                    <Palette size={18} className="text-accent" />
+                    <h3 className="text-sm font-black text-text-main uppercase tracking-widest">Interface e Aparência</h3>
                   </div>
 
-                  <div>
-                    <label className="block text-[10px] font-bold text-text-muted uppercase tracking-widest mb-4 ml-1">Moeda Principal para Relatórios</label>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      {currencies.map((curr) => (
-                        <button
-                          key={curr.code}
-                          type="button"
-                          onClick={() => setCurrency(curr.code)}
-                          className={cn(
-                            "p-4 rounded-2xl border transition-all flex flex-col items-center gap-2 basis-1",
-                            currency === curr.code 
-                              ? "bg-accent/10 border-accent text-accent ring-1 ring-accent/50" 
-                              : "bg-bg border-border-dim text-text-muted hover:border-text-muted/50"
-                          )}
-                        >
-                          <span className="text-2xl font-black">{curr.symbol}</span>
-                          <span className="text-[10px] font-bold uppercase tracking-tighter">{curr.code}</span>
-                        </button>
-                      ))}
+                  <div className="p-6 bg-bg border border-border-dim rounded-2xl space-y-4">
+                    <p className="text-xs font-black text-text-main uppercase tracking-widest">Tema da Aplicação</p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <button 
+                        type="button"
+                        onClick={() => setTheme('light')}
+                        className={cn(
+                          "p-4 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all",
+                          theme === 'light' ? "bg-card border-2 border-accent" : "bg-bg border border-border-dim opacity-50"
+                        )}
+                      >
+                        <div className="w-4 h-4 rounded-full bg-white border border-border-dim" />
+                        Claro
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={() => setTheme('dark')}
+                        className={cn(
+                          "p-4 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all",
+                          theme === 'dark' ? "bg-card border-2 border-accent" : "bg-bg border border-border-dim opacity-50"
+                        )}
+                      >
+                        <div className="w-4 h-4 rounded-full bg-black border border-white/10" />
+                        Escuro
+                      </button>
                     </div>
-                    <p className="text-[10px] text-text-muted mt-4 italic">Esta moeda será usada como base em todos os dashboards e gráficos anuais.</p>
-                  </div>
-
-                  <div className="pt-6 border-t border-border-dim">
-                    <label className="block text-[10px] font-bold text-text-muted uppercase tracking-widest mb-4 ml-1">Meta de Orçamento Mensal</label>
-                    <div className="relative max-w-xs">
-                      <input
-                        type="number"
-                        value={monthlyBudget || ''}
-                        onChange={(e) => setMonthlyBudget(parseFloat(e.target.value) || 0)}
-                        className="w-full px-5 py-4 bg-bg border border-border-dim rounded-2xl text-sm text-text-main font-bold focus:ring-2 focus:ring-accent outline-none transition-all"
-                        placeholder="Ex: 100.00"
-                      />
-                      <span className="absolute right-6 top-1/2 -translate-y-1/2 text-xs font-black text-text-muted">{currency}</span>
-                    </div>
-                    <p className="text-[10px] text-text-muted mt-4 italic">Define um limite para monitorizar o teu progresso no Dashboard.</p>
                   </div>
                 </section>
               )}
 
               {activeTab === 'categories' && (
-                <section className="space-y-6">
-                  <div className="flex items-center gap-2 pb-2 border-b border-border-dim">
-                    <LayoutGrid size={18} className="text-accent" />
-                    <h3 className="text-sm font-black text-text-main uppercase tracking-widest">Gestão de Categorias</h3>
+                <section className="space-y-8">
+                  <div className="flex items-center justify-between pb-2 border-b border-border-dim">
+                    <div className="flex items-center gap-2">
+                       <LayoutGrid size={18} className="text-accent" />
+                       <h3 className="text-sm font-black text-text-main uppercase tracking-widest">Gestão de Categorias</h3>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setCategoryToEdit(null);
+                        setIsCatModalOpen(true);
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-accent/90 transition-all shadow-lg shadow-accent/20"
+                    >
+                      <Plus size={14} />
+                      Nova Categoria
+                    </button>
                   </div>
 
-                  <p className="text-[10px] text-text-muted italic">Personaliza as cores das categorias que criaste para uma melhor visualização no dashboard.</p>
-
                   <div className="space-y-4">
-                    {userCategories.length === 0 ? (
-                      <div className="p-10 border border-dashed border-border-dim rounded-3xl text-center">
-                        <p className="text-xs text-text-muted font-bold">Ainda não criaste categorias personalizadas.</p>
-                      </div>
-                    ) : (
-                      userCategories.map((cat) => (
-                        <div key={cat.id} className="p-6 bg-bg border border-border-dim rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-                          <div className="flex items-center gap-4">
+                    <div className="flex items-center justify-between px-2">
+                       <h4 className="text-[10px] font-black text-text-muted uppercase tracking-widest">Todas as Categorias</h4>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 gap-3">
+                      {/* Unified Categories List */}
+                      {displayCategories.map((cat) => (
+                        <div key={cat.id} className={cn(
+                          "p-5 border rounded-[2rem] flex items-center justify-between group transition-all",
+                          cat.userId ? "bg-card border-border-dim hover:border-accent/30" : "bg-bg/30 border-border-dim/50 opacity-80 border-dashed hover:border-accent hover:opacity-100"
+                        )}>
+                          <div className="flex items-center gap-4 flex-1">
                             <div 
-                              className="w-10 h-10 rounded-xl shadow-inner border border-white/10"
+                              className="w-12 h-12 rounded-2xl shadow-inner border border-white/10 flex items-center justify-center text-white"
                               style={{ backgroundColor: cat.color }}
-                            />
+                            >
+                              <IconRenderer name={cat.icon || 'Tag'} size={20} />
+                            </div>
                             <div>
                               <p className="text-sm font-black text-text-main tracking-tight">{cat.name}</p>
-                              <p className="text-[10px] text-text-muted uppercase tracking-widest">Categoria Personalizada</p>
+                              <p className="text-[9px] text-text-muted font-black uppercase tracking-widest">
+                                {!cat.userId ? (
+                                  <span className="text-accent">Sistema</span>
+                                ) : (
+                                  cat.predefinedId ? <span className="text-accent">Sistema (Editada)</span> : "Personalizada"
+                                )}
+                              </p>
                             </div>
                           </div>
 
-                          <div className="flex flex-wrap gap-2">
-                            {CATEGORY_COLORS.map((color) => (
-                              <button
-                                key={color}
-                                onClick={() => updateCategory(cat.id, { color })}
-                                className={cn(
-                                  "w-6 h-6 rounded-full border-2 transition-all active:scale-90",
-                                  cat.color === color ? "border-white scale-110 shadow-lg" : "border-transparent opacity-50 hover:opacity-100"
-                                )}
-                                style={{ backgroundColor: color }}
-                              />
-                            ))}
+                          <div className="flex items-center gap-2 ml-4">
+                            <div className="hidden group-hover:flex items-center gap-1.5 px-3 py-1.5 bg-bg/50 rounded-full border border-border-dim transition-all">
+                              {CATEGORY_COLORS.slice(0, 8).map((color) => (
+                                <button
+                                  key={color}
+                                  type="button"
+                                  onClick={() => handleQuickColorUpdate(cat, color)}
+                                  className={cn(
+                                    "w-4 h-4 rounded-full border border-white/10 transition-all hover:scale-125",
+                                    cat.color === color && "ring-2 ring-accent"
+                                  )}
+                                  style={{ backgroundColor: color }}
+                                />
+                              ))}
+                            </div>
                             <button
-                              onClick={() => deleteCategory(cat.id)}
-                              className="ml-2 p-2 text-text-muted hover:text-red-500 transition-colors"
-                              title="Remover Categoria"
+                              type="button"
+                              onClick={() => startEditingCat(cat)}
+                              className={cn(
+                                "p-2.5 text-text-muted hover:text-accent hover:bg-accent/10 rounded-xl transition-all"
+                              )}
+                              title="Editar"
                             >
-                              <Trash2 size={16} />
+                              <Edit2 size={16} />
                             </button>
+                            {cat.userId && (
+                              <button
+                                type="button"
+                                onClick={() => setCatToDelete(cat)}
+                                className="p-2.5 text-text-muted hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
+                                title="Remover Categoria"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            )}
+                            {!cat.userId && (
+                              <div className="px-3 py-1 bg-bg border border-border-dim rounded-lg">
+                                <span className="text-[9px] font-black text-text-muted uppercase tracking-widest">Fixo</span>
+                              </div>
+                            )}
                           </div>
                         </div>
-                      ))
+                      ))}
+                    </div>
+
+                    {userCategories.length === 0 && (
+                      <div className="p-6 border border-dashed border-border-dim rounded-[2rem] text-center bg-bg/10">
+                        <p className="text-[10px] text-text-muted font-black uppercase tracking-widest">Não tens categorias personalizadas criadas.</p>
+                      </div>
                     )}
                   </div>
                 </section>
@@ -627,6 +1064,7 @@ const Settings: React.FC<SettingsProps> = ({ user }) => {
               {(activeTab === 'account' || activeTab === 'preferences' || activeTab === 'notifications') && (
                 <div className="pt-6 flex justify-end">
                   <button
+                    type="button"
                     onClick={() => handleSave()}
                     disabled={saving}
                     className="flex items-center gap-2 bg-accent hover:bg-accent/90 text-white px-8 py-4 rounded-2xl text-xs font-black transition-all shadow-xl shadow-accent/20 disabled:opacity-50"
@@ -646,6 +1084,22 @@ const Settings: React.FC<SettingsProps> = ({ user }) => {
           </motion.div>
         </div>
       </div>
+      <DeleteConfirmationModal
+        isOpen={catToDelete !== null}
+        onClose={() => setCatToDelete(null)}
+        onConfirm={handleDeleteCategory}
+        title="Eliminar Categoria"
+        itemName={catToDelete?.name || ''}
+        loading={isDeletingCat}
+      />
+
+      <CategoryModal
+        isOpen={isCatModalOpen}
+        onClose={() => setIsCatModalOpen(false)}
+        onSave={handleSaveCategory}
+        editCategory={categoryToEdit}
+        loading={isSavingCategory}
+      />
     </div>
   );
 };

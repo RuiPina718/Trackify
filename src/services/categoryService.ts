@@ -17,8 +17,7 @@ const CATEGORIES_COLLECTION = 'categories';
 export const subscribeToUserCategories = (userId: string, callback: (categories: Category[]) => void) => {
   const q = query(
     collection(db, CATEGORIES_COLLECTION),
-    where('userId', '==', userId),
-    orderBy('name', 'asc')
+    where('userId', '==', userId)
   );
 
   return onSnapshot(q, (snapshot) => {
@@ -26,15 +25,21 @@ export const subscribeToUserCategories = (userId: string, callback: (categories:
       id: doc.id,
       ...doc.data()
     })) as Category[];
-    callback(categories);
+    // Sort in memory to avoid needing a composite index
+    callback(categories.sort((a, b) => a.name.localeCompare(b.name)));
+  }, (error) => {
+    console.error('Error fetching categories:', error);
+    callback([]); // Return empty list on error to allow page to load
   });
 };
 
-export const createCategory = async (userId: string, name: string, color: string) => {
+export const createCategory = async (userId: string, name: string, color: string, predefinedId?: string, icon?: string) => {
   return addDoc(collection(db, CATEGORIES_COLLECTION), {
     userId,
     name,
     color,
+    predefinedId,
+    icon,
     createdAt: new Date().toISOString()
   });
 };

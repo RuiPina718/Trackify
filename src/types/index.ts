@@ -30,11 +30,33 @@ export interface UserProfile {
   uid: string;
   email: string;
   displayName?: string;
+  photoURL?: string;
   createdAt: string;
   currency: string;
   theme?: 'light' | 'dark';
   notifications?: NotificationPreferences;
-  monthlyBudget?: number;
+  monthlyBudget?: number | null;
+  bio?: string;
+  location?: string;
+  isAdmin?: boolean;
+  isPremium?: boolean;
+}
+
+export interface AuditLog {
+  id: string;
+  action: string;
+  performedBy: string;
+  targetId: string;
+  timestamp: string;
+  details?: string;
+}
+
+export interface SystemNotice {
+  id: string;
+  message: string;
+  type: 'info' | 'warning' | 'alert';
+  active: boolean;
+  updatedAt: string;
 }
 
 export interface Category {
@@ -42,12 +64,27 @@ export interface Category {
   userId?: string;
   name: string;
   color: string;
+  icon?: string;
+  predefinedId?: string;
 }
 
 export const PREDEFINED_CATEGORIES: Category[] = [
-  { id: 'cat_streaming', name: 'Streaming', color: '#6366f1' },
-  { id: 'cat_software', name: 'Software', color: '#10b981' },
-  { id: 'cat_gaming', name: 'Gaming', color: '#f43f5e' },
-  { id: 'cat_health', name: 'Saúde', color: '#06b6d4' },
-  { id: 'cat_others', name: 'Outros', color: '#94a3b8' },
+  { id: 'streaming', name: 'Streaming', color: '#6366f1', icon: 'Tv' },
+  { id: 'software', name: 'Software', color: '#10b981', icon: 'Box' },
+  { id: 'gaming', name: 'Gaming', color: '#f43f5e', icon: 'Gamepad2' },
+  { id: 'music', name: 'Música', color: '#a855f7', icon: 'Music' },
+  { id: 'health', name: 'Saúde', color: '#06b6d4', icon: 'Activity' },
+  { id: 'others', name: 'Outros', color: '#94a3b8', icon: 'MoreHorizontal' },
+];
+
+export const CATEGORY_COLORS = [
+  '#6366f1', '#10b981', '#f43f5e', '#a855f7', '#06b6d4', 
+  '#f97316', '#ec4899', '#eab308'
+];
+
+export const CATEGORY_ICONS = [
+  'Tag', 'Tv', 'Box', 'Gamepad2', 'Music', 'Activity', 
+  'MoreHorizontal', 'ShoppingBag', 'Utensils', 'Car', 
+  'Home', 'Heart', 'Zap', 'Coffee', 'Smartphone', 
+  'Laptop', 'Book', 'Camera'
 ];

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { User, signOut } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
 import { 
@@ -13,9 +13,10 @@ import {
   Shield,
   BarChart3,
   Sun,
-  Moon
+  Moon,
+  AlertCircle
 } from 'lucide-react';
-import { cn } from '../../lib/utils';
+import { cn, formatCurrency } from '../../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { Subscription, UserProfile } from '../../types';
 import Dashboard from '../dashboard/Overview';
@@ -27,6 +28,10 @@ import AdminDashboard from '../admin/AdminDashboard';
 import SettingsView from '../settings/Settings';
 import Chatbot from '../chat/Chatbot';
 import { subscribeToUserProfile, updateUserProfile } from '../../services/userService';
+import { subscribeToUserSubscriptions } from '../../services/subscriptionService';
+import { addDays, format } from 'date-fns';
+import { pt } from 'date-fns/locale';
+import { IconRenderer } from '../ui/IconRenderer';
 
 interface ShellProps {
   user: User;
@@ -36,10 +41,12 @@ export type ViewType = 'dashboard' | 'subscriptions' | 'calendar' | 'analytics' 
 
 export default function Shell({ user }: ShellProps) {
   const [activeView, setActiveView] = useState<ViewType>('dashboard');
+  const [settingsTab, setSettingsTab] = useState<string | undefined>(undefined);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [editSubscription, setEditSubscription] = useState<Subscription | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [localTheme, setLocalTheme] = useState<'light' | 'dark'>('dark');
 
   useEffect(() => {
@@ -51,6 +58,44 @@ export default function Shell({ user }: ShellProps) {
     });
     return () => unsub();
   }, [user.uid]);
+
+  useEffect(() => {
+    const unsub = subscribeToUserSubscriptions(user.uid, (subs) => {
+      setSubscriptions(subs);
+    }, (error) => console.error('Error fetching subscriptions for notifications:', error));
+    return () => unsub();
+  }, [user.uid]);
+
+  const urgentAlerts = useMemo(() => {
+    if (!userProfile?.notifications?.billingReminders) return [];
+    
+    const today = new Date();
+    const reminderDays = userProfile.notifications.reminderDays || 3;
+    const active = subscriptions.filter(s => s.status === 'active');
+    
+    const upcoming = active.map(s => {
+      let nextDate: Date;
+      
+      if (s.billingCycle === 'yearly' || s.billingCycle === 'annual') {
+        const month = (s.billingMonth || 1) - 1;
+        nextDate = new Date(today.getFullYear(), month, s.billingDay);
+        if (nextDate < today) nextDate.setFullYear(today.getFullYear() + 1);
+      } else {
+        nextDate = new Date(today.getFullYear(), today.getMonth(), s.billingDay);
+        if (nextDate < today) nextDate.setMonth(nextDate.getMonth() + 1);
+      }
+      
+      return { ...s, nextDate };
+    }).filter(s => {
+      const diffTime = s.nextDate.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays >= 0 && diffDays <= reminderDays;
+    }).sort((a, b) => a.nextDate.getTime() - b.nextDate.getTime());
+
+    return upcoming;
+  }, [subscriptions, userProfile?.notifications]);
+
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const toggleTheme = async () => {
     const newTheme = localTheme === 'light' ? 'dark' : 'light';
@@ -77,6 +122,16 @@ export default function Shell({ user }: ShellProps) {
     setEditSubscription(null);
   };
 
+  const handleNavigate = (view: ViewType, tab?: string) => {
+    setActiveView(view);
+    if (view === 'settings' && tab) {
+      setSettingsTab(tab);
+    } else if (view !== 'settings') {
+      setSettingsTab(undefined);
+    }
+    setIsSidebarOpen(false);
+  };
+
   const isAdmin = user.email === 'ruialexandrepina@gmail.com';
 
   const navItems = [
@@ -94,23 +149,45 @@ export default function Shell({ user }: ShellProps) {
   const handleLogout = () => signOut(auth);
 
   return (
-    <div className="flex h-screen bg-bg overflow-hidden text-text-main">
+    <div className="flex h-screen bg-bg overflow-hidden text-text-main relative">
+      {/* Mobile Overlay */}
+      <AnimatePresence>
+        {isSidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsSidebarOpen(false)}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] lg:hidden"
+          />
+        )}
+      </AnimatePresence>
+
       {/* Sidebar */}
-      <aside className="w-64 bg-card border-r border-border-dim flex flex-col">
-        <div className="p-8">
+      <aside className={cn(
+        "fixed inset-y-0 left-0 z-[70] w-64 bg-card border-r border-border-dim flex flex-col transition-transform duration-300 lg:static lg:translate-x-0 outline-none",
+        isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+      )}>
+        <div className="p-8 flex items-center justify-between">
           <button 
-            onClick={() => setActiveView('dashboard')}
+            onClick={() => {
+              setActiveView('dashboard');
+              setIsSidebarOpen(false);
+            }}
             className="text-xl font-extrabold tracking-tighter text-accent flex items-center gap-2 hover:opacity-80 transition-opacity active:scale-95"
           >
             TRACKIFY
           </button>
+          <button className="lg:hidden p-2 text-text-muted hover:text-accent" onClick={() => setIsSidebarOpen(false)}>
+            <Plus className="rotate-45" size={24} />
+          </button>
         </div>
 
-        <nav className="flex-1 px-4 py-4 space-y-2">
+        <nav className="flex-1 px-4 py-4 space-y-1.5 overflow-y-auto">
           {navItems.map((item) => (
             <button
               key={item.id}
-              onClick={() => setActiveView(item.id as ViewType)}
+              onClick={() => handleNavigate(item.id as ViewType)}
               className={cn(
                 "w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all group",
                 activeView === item.id 
@@ -128,10 +205,10 @@ export default function Shell({ user }: ShellProps) {
         </nav>
 
         <div className="p-4 mt-auto">
-          <div className="bg-bg border border-border-dim rounded-3xl p-6 mb-4">
-            <p className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-1">Upgrade</p>
-            <p className="text-xs text-text-muted mb-3 leading-relaxed">Obtenha insights ilimitados e notificações push.</p>
-            <button className="w-full py-2 bg-card border border-border-dim text-[11px] font-bold rounded-xl hover:border-accent hover:text-accent transition-all">
+          <div className="bg-bg border border-border-dim rounded-3xl p-6 mb-4 hidden sm:block">
+            <p className="text-xs font-black text-text-muted uppercase tracking-[0.2em] mb-1">Upgrade</p>
+            <p className="text-[11px] text-text-muted mb-3 leading-relaxed font-medium">Obtenha insights ilimitados e notificações push.</p>
+            <button className="w-full py-2.5 bg-card border border-border-dim text-[11px] font-black rounded-xl hover:border-accent hover:text-accent transition-all uppercase tracking-widest">
               SABER MAIS
             </button>
           </div>
@@ -147,25 +224,33 @@ export default function Shell({ user }: ShellProps) {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Header */}
-        <header className="h-20 bg-card border-b border-border-dim flex items-center justify-between px-8 shrink-0">
-          <div className="flex items-center gap-4 bg-bg px-4 py-2 rounded-2xl w-96 border border-border-dim focus-within:border-accent focus-within:bg-card transition-all group">
-            <Search size={18} className="text-text-muted group-focus-within:text-accent" />
-            <input 
-              type="text" 
-              placeholder="Pesquisar subscrições..." 
-              className="bg-transparent border-none outline-none text-sm w-full text-text-main placeholder:text-text-muted/30"
-            />
+        <header className="h-20 bg-card border-b border-border-dim flex items-center justify-between px-4 sm:px-8 shrink-0 z-50">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setIsSidebarOpen(true)}
+              className="lg:hidden p-2 text-text-muted hover:text-accent bg-bg rounded-xl border border-border-dim"
+            >
+              <LayoutDashboard size={20} />
+            </button>
+            <div className="hidden md:flex items-center gap-4 bg-bg px-4 py-2 rounded-2xl w-64 lg:w-96 border border-border-dim focus-within:border-accent focus-within:bg-card transition-all group">
+              <Search size={18} className="text-text-muted group-focus-within:text-accent" />
+              <input 
+                type="text" 
+                placeholder="Pesquisar..." 
+                className="bg-transparent border-none outline-none text-sm w-full text-text-main placeholder:text-text-muted/30"
+              />
+            </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <button 
               onClick={toggleTheme}
               className="p-2.5 rounded-xl bg-bg text-text-muted border border-border-dim hover:text-accent hover:border-accent transition-all group"
               title={localTheme === 'light' ? 'Mudar para Modo Escuro' : 'Mudar para Modo Claro'}
             >
-              {localTheme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+              {localTheme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
             </button>
 
             <div className="relative">
@@ -176,8 +261,10 @@ export default function Shell({ user }: ShellProps) {
                   showNotifications ? "border-accent text-accent" : "border-border-dim hover:text-accent hover:border-accent"
                 )}
               >
-                <Bell size={20} />
-                <div className="absolute top-2 right-2 w-2 h-2 bg-accent rounded-full border-2 border-card"></div>
+                <Bell size={18} />
+                {urgentAlerts.length > 0 && (
+                  <div className="absolute top-2 right-2 w-2 h-2 bg-accent rounded-full border-2 border-card animate-pulse shadow-lg shadow-accent/50"></div>
+                )}
               </button>
 
               <AnimatePresence>
@@ -186,53 +273,103 @@ export default function Shell({ user }: ShellProps) {
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute right-0 mt-4 w-80 bg-card border border-border-dim rounded-[2rem] shadow-2xl z-50 overflow-hidden"
+                    className="absolute right-0 mt-4 w-72 sm:w-80 bg-card border border-border-dim rounded-[2.5rem] shadow-2xl z-50 overflow-hidden"
                   >
-                    <div className="p-6 border-b border-border-dim flex items-center justify-between">
-                      <h4 className="text-sm font-black text-text-main tracking-tight">Notificações</h4>
-                      <span className="text-[10px] font-black text-accent uppercase tracking-widest bg-accent/10 px-2 py-0.5 rounded-full">Recentes</span>
+                    <div className="p-5 border-b border-border-dim flex items-center justify-between">
+                      <h4 className="text-[10px] font-black text-text-main tracking-widest uppercase ml-2">Notificações</h4>
+                      {urgentAlerts.length > 0 && (
+                        <span className="text-[9px] font-black text-accent uppercase tracking-widest bg-accent/10 px-3 py-1 rounded-full">
+                          {urgentAlerts.length} {urgentAlerts.length === 1 ? 'Pendente' : 'Pendentes'}
+                        </span>
+                      )}
                     </div>
-                    <div className="p-10 flex flex-col items-center text-center">
-                      <div className="w-16 h-16 bg-bg rounded-full flex items-center justify-center mb-4 border border-border-dim">
-                        <Bell size={24} className="text-text-muted/30" />
+                    
+                    <div className="max-h-[400px] overflow-y-auto no-scrollbar">
+                      {urgentAlerts.length > 0 ? (
+                        <div className="p-4 space-y-3">
+                          {urgentAlerts.map(sub => (
+                            <div key={sub.id} className="p-4 bg-bg border border-border-dim rounded-2xl flex items-center gap-4 group hover:border-accent transition-all">
+                              <div className="w-10 h-10 bg-card rounded-xl border border-border-dim flex items-center justify-center text-accent group-hover:bg-accent group-hover:text-white transition-all shadow-sm">
+                                <IconRenderer name={sub.icon} size={18} fallback={<span className="font-black text-xs">{sub.name.charAt(0)}</span>} />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center justify-between gap-2">
+                                  <p className="text-xs font-black text-text-main truncate uppercase tracking-tight">{sub.name}</p>
+                                  <p className="text-[10px] font-black text-accent whitespace-nowrap">
+                                    {formatCurrency(sub.amount, userProfile?.currency || 'EUR')}
+                                  </p>
+                                </div>
+                                <p className="text-[9px] text-text-muted font-bold mt-1 uppercase tracking-widest flex items-center gap-1.5 opacity-70">
+                                  <AlertCircle size={10} className="text-accent" />
+                                  Vence a {format(sub.nextDate, "dd 'de' MMM", { locale: pt })}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="p-10 flex flex-col items-center text-center">
+                          <div className="w-16 h-16 bg-bg rounded-3xl flex items-center justify-center mb-4 border border-border-dim relative overflow-hidden group">
+                            <div className="absolute inset-0 bg-accent/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <Bell size={24} className="text-text-muted/20 relative z-10" />
+                          </div>
+                          <p className="text-xs font-black text-text-main mb-1">Tudo limpo por aqui!</p>
+                          <p className="text-[10px] text-text-muted font-bold uppercase tracking-widest leading-relaxed opacity-60">
+                            Não tens nenhuma notificação de cobrança pendente para os próximos dias.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {urgentAlerts.length > 0 && (
+                      <div className="p-4 bg-bg/50 border-t border-border-dim">
+                        <button 
+                          onClick={() => {
+                            setActiveView('calendar');
+                            setShowNotifications(false);
+                          }}
+                          className="w-full py-3 bg-card border border-border-dim rounded-xl text-[9px] font-black uppercase tracking-[0.2em] text-text-muted hover:text-accent hover:border-accent transition-all"
+                        >
+                          Ver no Calendário
+                        </button>
                       </div>
-                      <p className="text-xs font-black text-text-main mb-1">Tudo limpo por aqui!</p>
-                      <p className="text-[10px] text-text-muted font-bold uppercase tracking-widest leading-relaxed">
-                        Não tens nenhuma notificação de cobrança pendente.
-                      </p>
-                    </div>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
             
-            <div className="h-10 w-px bg-border-dim mx-2"></div>
+            <div className="h-8 w-px bg-border-dim mx-1 hidden sm:block"></div>
             
             <button 
               onClick={() => setActiveView('settings')}
-              className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+              className="hidden sm:flex items-center gap-3 hover:opacity-80 transition-opacity text-left"
             >
-              <div className="text-right">
-                <p className="text-sm font-bold text-text-main leading-tight">{user.displayName || 'Utilizador'}</p>
-                <p className="text-[10px] text-text-muted font-bold uppercase tracking-widest">Premium User</p>
+              <div className="text-right hidden lg:block">
+                <p className="text-sm font-black text-text-main leading-tight tracking-tight">{userProfile?.displayName || user.displayName || 'Utilizador'}</p>
+                <p className="text-[10px] text-text-muted font-black uppercase tracking-widest">Premium User</p>
               </div>
-              <div className="w-10 h-10 rounded-2xl bg-accent flex items-center justify-center text-white text-xs font-black shadow-lg shadow-accent/20">
-                {user.email?.charAt(0).toUpperCase()}
+              <div className="w-10 h-10 rounded-xl bg-accent overflow-hidden flex items-center justify-center text-white text-xs font-black shadow-lg shadow-accent/20 border-2 border-accent">
+                {userProfile?.photoURL ? (
+                  <img src={userProfile.photoURL} alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                ) : (
+                  (userProfile?.displayName || user.displayName || 'U').charAt(0).toUpperCase()
+                )}
               </div>
             </button>
 
             <button 
               onClick={() => setIsModalOpen(true)}
-              className="ml-4 px-6 py-3 bg-accent text-white rounded-2xl text-sm font-bold hover:bg-accent/90 transition-all flex items-center gap-2 shadow-xl shadow-accent/20"
+              className="px-4 sm:px-6 py-2.5 sm:py-3 bg-accent text-white rounded-xl sm:rounded-2xl text-xs sm:text-sm font-black hover:bg-accent/90 transition-all flex items-center gap-2 shadow-xl shadow-accent/20 uppercase tracking-widest active:scale-95"
             >
-              <Plus size={18} />
-              Adicionar
+              <Plus size={18} className="sm:size-[18px]" />
+              <span className="hidden xs:inline">Adicionar</span>
             </button>
           </div>
         </header>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto bg-bg p-8">
+        <div className="flex-1 overflow-y-auto bg-bg p-4 sm:p-8">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeView}
@@ -242,12 +379,12 @@ export default function Shell({ user }: ShellProps) {
               transition={{ duration: 0.2 }}
               className="max-w-6xl mx-auto"
             >
-              {activeView === 'dashboard' && <Dashboard userId={user.uid} userProfile={userProfile} />}
+              {activeView === 'dashboard' && <Dashboard userId={user.uid} userProfile={userProfile} onNavigate={handleNavigate} />}
               {activeView === 'subscriptions' && <SubscriptionList userId={user.uid} onEdit={handleEdit} currency={userProfile?.currency} />}
               {activeView === 'calendar' && <CalendarView userId={user.uid} currency={userProfile?.currency} />}
               {activeView === 'analytics' && <AnalyticsView userId={user.uid} currency={userProfile?.currency} />}
               {activeView === 'admin' && isAdmin && <AdminDashboard />}
-              {activeView === 'settings' && <SettingsView user={user} />}
+              {activeView === 'settings' && <SettingsView user={user} initialTab={settingsTab as any} />}
             </motion.div>
           </AnimatePresence>
         </div>

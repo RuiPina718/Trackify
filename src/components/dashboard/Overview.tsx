@@ -7,10 +7,12 @@ import {
   AlertCircle,
   Clock,
   ArrowRight,
-  CreditCard
+  CreditCard,
+  SlidersHorizontal
 } from 'lucide-react';
 import { subscribeToUserSubscriptions } from '../../services/subscriptionService';
 import { Subscription, UserProfile } from '../../types';
+import { useUnifiedCategories } from '../../hooks/useUnifiedCategories';
 import { formatCurrency, cn } from '../../lib/utils';
 import { format, addDays } from 'date-fns';
 import { pt } from 'date-fns/locale';
@@ -20,12 +22,14 @@ import { IconRenderer } from '../ui/IconRenderer';
 interface DashboardProps {
   userId: string;
   userProfile: UserProfile | null;
+  onNavigate?: (view: any, tab?: string) => void;
 }
 
-export default function Dashboard({ userId, userProfile }: DashboardProps) {
+export default function Dashboard({ userId, userProfile, onNavigate }: DashboardProps) {
   const currency = userProfile?.currency || 'EUR';
   const notifications = userProfile?.notifications;
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const { categories: unifiedCategories } = useUnifiedCategories(userId);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -166,38 +170,29 @@ export default function Dashboard({ userId, userProfile }: DashboardProps) {
 
   return (
     <div className="space-y-8 pb-12">
-      {/* Urgent Alerts Banner */}
-      <AnimatePresence>
-        {urgentAlerts.length > 0 && (
-          <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-accent/10 border border-accent/20 p-6 rounded-[2.5rem] flex items-center justify-between group overflow-hidden relative"
-          >
-            <div className="absolute top-0 right-0 w-32 h-full bg-accent/5 -skew-x-12 translate-x-12 pointer-events-none" />
-            <div className="flex items-center gap-5 relative z-10">
-              <div className="w-12 h-12 bg-accent rounded-2xl flex items-center justify-center text-white shadow-xl shadow-accent/30">
-                <AlertCircle size={22} className="animate-pulse" />
-              </div>
-              <div>
-                <h4 className="text-sm font-black text-text-main tracking-tight">Pagamentos em Breve</h4>
-                <p className="text-[10px] text-accent font-black uppercase tracking-widest mt-0.5">
-                  Tens {urgentAlerts.length} {urgentAlerts.length === 1 ? 'cobrança' : 'cobranças'} nos próximos {notifications?.reminderDays || 3} dias
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-3 relative z-10">
-              <div className="flex -space-x-3">
-                {urgentAlerts.slice(0, 3).map(s => (
-                  <div key={s.id} title={s.name} className="w-10 h-10 rounded-xl bg-card border-2 border-accent/20 flex items-center justify-center text-accent shadow-sm">
-                    <IconRenderer name={s.icon} size={18} fallback={<span className="font-black text-[10px]">{s.name.charAt(0)}</span>} />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Header Greeting */}
+      <div className="flex items-center justify-between px-2">
+        <div className="flex items-center gap-5">
+          <div className="w-16 h-16 rounded-2xl bg-accent overflow-hidden border-2 border-accent shadow-xl flex items-center justify-center text-white shrink-0">
+             {userProfile?.photoURL ? (
+                <img src={userProfile.photoURL} alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+             ) : (
+                <span className="text-2xl font-black">{(userProfile?.displayName || 'U').charAt(0).toUpperCase()}</span>
+             )}
+          </div>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-black text-text-main tracking-tighter">Olá, {userProfile?.displayName ? userProfile.displayName.split(' ')[0] : 'Utilizador'}! 👋</h1>
+            <p className="text-[10px] text-text-muted font-black uppercase tracking-[0.2em] mt-1">Tens tudo sob controlo para este mês.</p>
+          </div>
+        </div>
+        <button 
+          onClick={() => onNavigate?.('settings')}
+          className="hidden sm:flex items-center gap-2 px-4 py-2 bg-card border border-border-dim rounded-xl text-[10px] font-black uppercase tracking-widest hover:border-accent transition-all"
+        >
+          <SlidersHorizontal size={14} />
+          Configurar
+        </button>
+      </div>
 
       {/* Bento Layout Grid with Staggered Entrance */}
       <motion.div 
@@ -206,7 +201,7 @@ export default function Dashboard({ userId, userProfile }: DashboardProps) {
         variants={{
           visible: { transition: { staggerChildren: 0.05 } }
         }}
-        className="grid grid-cols-12 grid-rows-10 gap-5 lg:h-[750px]"
+        className="grid grid-cols-1 md:grid-cols-12 gap-5"
       >
         {/* Main Stat Card - Monthly Expense */}
         <motion.div 
@@ -214,25 +209,25 @@ export default function Dashboard({ userId, userProfile }: DashboardProps) {
             hidden: { opacity: 0, scale: 0.95 },
             visible: { opacity: 1, scale: 1 }
           }}
-          className="col-span-12 md:col-span-8 row-span-4 bg-accent rounded-[3rem] p-10 flex flex-col justify-between group relative overflow-hidden shadow-2xl shadow-accent/20"
+          className="col-span-1 md:col-span-12 lg:col-span-8 min-h-[300px] bg-accent rounded-[2.5rem] sm:rounded-[3rem] p-6 sm:p-10 flex flex-col justify-between group relative overflow-hidden shadow-2xl shadow-accent/20"
         >
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl group-hover:bg-white/10 transition-colors" />
           
           <div className="relative z-10">
-            <p className="text-[10px] font-black text-white/50 uppercase tracking-[0.3em] mb-2">Despesa Mensal Estimada</p>
-            <h3 className="text-6xl font-black text-white tracking-tighter tabular-nums drop-shadow-sm">
+            <p className="text-[11px] font-black text-white/50 uppercase tracking-[0.3em] mb-2 sm:mb-4">Despesa Mensal Estimada</p>
+            <h3 className="text-4xl sm:text-5xl md:text-6xl font-black text-white tracking-tighter tabular-nums drop-shadow-sm">
               {formatCurrency(stats.monthlyTotal, currency)}
             </h3>
           </div>
 
-          <div className="relative z-10 flex items-center justify-between bg-white/10 backdrop-blur-md p-4 rounded-3xl border border-white/10">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                <CreditCard size={14} className="text-white" />
+          <div className="relative z-10 flex items-center justify-between bg-white/10 backdrop-blur-md p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-white/10 mt-8">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                <CreditCard size={14} className="text-white sm:size-4" />
               </div>
               <div>
-                <p className="text-[10px] font-black text-white uppercase tracking-widest">{stats.activeCount} Subscrições Ativas</p>
-                <p className="text-[9px] text-white/60 font-bold uppercase mt-0.5">Renovações Mensais</p>
+                <p className="text-[11px] font-black text-white uppercase tracking-widest">{stats.activeCount} Subscrições Ativas</p>
+                <p className="text-[10px] text-white/60 font-black uppercase mt-0.5 opacity-80 tracking-wider">Renovações Mensais</p>
               </div>
             </div>
             <ArrowRight size={20} className="text-white/40 group-hover:text-white transition-all transform group-hover:translate-x-1" />
@@ -245,15 +240,24 @@ export default function Dashboard({ userId, userProfile }: DashboardProps) {
             hidden: { opacity: 0, scale: 0.95 },
             visible: { opacity: 1, scale: 1 }
           }}
-          className="col-span-12 md:col-span-4 row-span-4 bg-card rounded-[3rem] border border-border-dim p-8 flex flex-col justify-between group hover:border-accent transition-all shadow-xl shadow-bg"
+          className="col-span-1 md:col-span-6 lg:col-span-4 bg-card rounded-[2.5rem] sm:rounded-[3rem] border border-border-dim p-6 sm:p-8 flex flex-col justify-between group hover:border-accent transition-all shadow-xl shadow-bg min-h-[250px]"
         >
           <div>
             <div className="flex items-center justify-between mb-4">
-              <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.3em]">Orçamento Mensal</p>
+              <div className="flex items-center gap-2">
+                <p className="text-[11px] font-black text-text-muted uppercase tracking-[0.3em]">Orçamento Mensal</p>
+                <button 
+                  onClick={() => onNavigate?.('settings', 'preferences')}
+                  className="p-1 hover:bg-bg rounded-md text-text-muted hover:text-accent transition-colors"
+                  title="Editar Orçamento"
+                >
+                  <SlidersHorizontal size={12} />
+                </button>
+              </div>
               {userProfile?.monthlyBudget && (
                 <span className={cn(
-                  "text-[10px] font-black uppercase tracking-widest",
-                  stats.monthlyTotal > userProfile.monthlyBudget ? "text-red-500" : "text-health"
+                  "text-[11px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-bg border border-border-dim",
+                  stats.monthlyTotal > userProfile.monthlyBudget ? "text-red-500 border-red-500/20" : "text-health border-health/20"
                 )}>
                   {Math.round((stats.monthlyTotal / userProfile.monthlyBudget) * 100)}%
                 </span>
@@ -262,9 +266,9 @@ export default function Dashboard({ userId, userProfile }: DashboardProps) {
             
             {userProfile?.monthlyBudget ? (
               <div className="space-y-4">
-                <h3 className="text-3xl font-black text-text-main tracking-tight tabular-nums">
+                <h3 className="text-2xl sm:text-3xl font-black text-text-main tracking-tight tabular-nums truncate">
                   {formatCurrency(userProfile.monthlyBudget - stats.monthlyTotal, currency)}
-                  <span className="text-[10px] text-text-muted ml-2 font-black uppercase tracking-widest opacity-50">Restantes</span>
+                  <span className="text-[11px] text-text-muted ml-2 font-black uppercase tracking-widest opacity-50 block sm:inline">Restantes</span>
                 </h3>
                 <div className="h-3 bg-bg rounded-full overflow-hidden border border-border-dim/50">
                   <motion.div 
@@ -276,23 +280,23 @@ export default function Dashboard({ userId, userProfile }: DashboardProps) {
                     )}
                   />
                 </div>
-                <p className="text-[9px] text-text-muted font-bold uppercase tracking-[0.1em]">
+                <p className="text-[10px] text-text-muted font-black uppercase tracking-[0.1em] opacity-70">
                   Total Faturado: {formatCurrency(stats.monthlyTotal, currency)}
                 </p>
               </div>
             ) : (
-              <div className="space-y-2">
-                <h3 className="text-2xl font-black text-text-main tracking-tight opacity-50">Sem Orçamento</h3>
-                <p className="text-[10px] text-text-muted font-bold uppercase leading-relaxed">
-                  Define um limite mensal nas <span className="text-accent underline">definições</span> para monitorizares as tuas poupanças.
+              <div className="space-y-3">
+                <h3 className="text-xl sm:text-2xl font-black text-text-main tracking-tight opacity-40">Sem Orçamento</h3>
+                <p className="text-[10px] sm:text-[11px] text-text-muted font-black uppercase leading-relaxed tracking-wider">
+                  Define um limite mensal nas <span onClick={() => onNavigate?.('settings', 'preferences')} className="text-accent underline cursor-pointer">definições</span> para monitorizares as tuas finanças.
                 </p>
               </div>
             )}
           </div>
           
           <div className="pt-6 border-t border-border-dim/50">
-            <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.3em] mb-2">Projeção Anual</p>
-            <p className="text-xl font-black text-text-main tracking-tight tabular-nums">
+            <p className="text-[11px] font-black text-text-muted uppercase tracking-[0.3em] mb-2">Projeção Anual</p>
+            <p className="text-xl sm:text-2xl font-black text-text-main tracking-tight tabular-nums">
               {formatCurrency(stats.yearlyTotal, currency)}
             </p>
           </div>
@@ -304,30 +308,45 @@ export default function Dashboard({ userId, userProfile }: DashboardProps) {
             hidden: { opacity: 0, scale: 0.95 },
             visible: { opacity: 1, scale: 1 }
           }}
-          className="col-span-12 md:col-span-5 row-span-6 bg-card rounded-[3rem] border border-border-dim p-8 flex flex-col group hover:border-accent transition-all shadow-xl shadow-bg"
+          className="col-span-1 md:col-span-6 lg:col-span-5 bg-card rounded-[2.5rem] sm:rounded-[3rem] border border-border-dim p-6 sm:p-8 flex flex-col group hover:border-accent transition-all shadow-xl shadow-bg min-h-[350px]"
         >
           <div className="flex items-center justify-between mb-8">
-            <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.3em]">Distribuição</p>
+            <p className="text-[11px] font-black text-text-muted uppercase tracking-[0.3em]">Distribuição por Categoria</p>
             <TrendingUp size={18} className="text-text-muted group-hover:text-accent transition-colors" />
           </div>
           
-          <div className="space-y-6 flex-1 overflow-y-auto pr-2 custom-scrollbar">
-            {stats.categories.map((cat, i) => (
-              <div key={cat.name} className="space-y-2">
-                <div className="flex justify-between items-center px-1">
-                  <span className="text-[11px] font-black text-text-main uppercase tracking-widest">{cat.name}</span>
-                  <span className="text-[11px] font-black text-text-muted tabular-nums">{formatCurrency(cat.value, currency)}</span>
+          <div className="space-y-6 flex-1 pr-1">
+            {stats.categories.map((cat, i) => {
+              const categoryDetails = unifiedCategories.find(c => c.name === cat.name);
+              return (
+                <div key={cat.name} className="space-y-2">
+                  <div className="flex justify-between items-center px-1">
+                    <div className="flex items-center gap-2 mr-4 min-w-0">
+                      <div 
+                        className="w-6 h-6 rounded-lg flex items-center justify-center text-white shrink-0"
+                        style={{ backgroundColor: categoryDetails?.color || 'var(--color-accent)' }}
+                      >
+                        <IconRenderer name={categoryDetails?.icon} size={12} />
+                      </div>
+                      <span className="text-[11px] font-black text-text-main uppercase tracking-widest truncate">{cat.name}</span>
+                    </div>
+                    <span className="text-[11px] font-black text-text-muted tabular-nums whitespace-nowrap">{formatCurrency(cat.value, currency)}</span>
+                  </div>
+                  <div className="h-3 bg-bg rounded-full overflow-hidden border border-border-dim/50 ml-8">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${(cat.value / stats.monthlyTotal) * 100}%` }}
+                      transition={{ delay: 0.5 + (i * 0.1) }}
+                      className="h-full rounded-full shadow-sm"
+                      style={{ 
+                        backgroundColor: categoryDetails?.color || 'var(--color-accent)',
+                        boxShadow: `0 0 10px ${categoryDetails?.color}40` 
+                      }}
+                    />
+                  </div>
                 </div>
-                <div className="h-3 bg-bg rounded-full overflow-hidden border border-border-dim/50">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: `${(cat.value / stats.monthlyTotal) * 100}%` }}
-                    transition={{ delay: 0.8 + (i * 0.1) }}
-                    className="h-full bg-accent rounded-full shadow-lg shadow-accent/20"
-                  />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </motion.div>
 
@@ -337,40 +356,40 @@ export default function Dashboard({ userId, userProfile }: DashboardProps) {
             hidden: { opacity: 0, scale: 0.95 },
             visible: { opacity: 1, scale: 1 }
           }}
-          className="col-span-12 md:col-span-7 row-span-6 bg-bg rounded-[3rem] border border-border-dim p-10 flex flex-col group hover:border-accent transition-all shadow-xl shadow-bg"
+          className="col-span-1 md:col-span-12 lg:col-span-7 bg-bg rounded-[2.5rem] sm:rounded-[3rem] border border-border-dim p-6 sm:p-10 flex flex-col group hover:border-accent transition-all shadow-xl shadow-bg min-h-[350px]"
         >
-          <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.3em] mb-10">Insights Inteligentes</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 flex-1">
+          <p className="text-[11px] font-black text-text-muted uppercase tracking-[0.3em] mb-8 sm:mb-10">Insights Inteligentes</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             {insights.length > 0 ? insights.map((insight, idx) => (
               <div 
                 key={idx} 
                 className={cn(
-                  "p-6 rounded-[2rem] flex gap-5 items-start border transition-all hover:scale-[1.02]",
+                  "p-5 sm:p-6 rounded-[2rem] flex gap-4 sm:gap-5 items-start border transition-all hover:scale-[1.02]",
                   insight.type === 'warning' ? "bg-red-500/5 border-red-500/10" : "bg-accent/5 border-accent/10"
                 )}
               >
-                <div className="text-3xl filter grayscale group-hover:grayscale-0 transition-all">{insight.icon}</div>
+                <div className="text-2xl sm:text-3xl filter grayscale group-hover:grayscale-0 transition-all">{insight.icon}</div>
                 <div>
                   <p className={cn(
                     "text-xs font-black mb-1.5 uppercase tracking-widest",
                     insight.type === 'warning' ? "text-red-500" : "text-accent"
                   )}>{insight.title}</p>
-                  <p className="text-[10px] text-text-muted font-bold leading-relaxed uppercase tracking-wider">{insight.description}</p>
+                  <p className="text-[11px] text-text-muted font-black uppercase leading-relaxed tracking-wider opacity-70">{insight.description}</p>
                 </div>
               </div>
             )) : (
-              <div className="col-span-2 flex flex-col items-center justify-center py-12 text-center bg-bg border border-dashed border-border-dim rounded-[2rem]">
-                <div className="w-16 h-16 bg-accent/5 rounded-full flex items-center justify-center mb-4">
-                  <span className="text-3xl">⭐</span>
+              <div className="col-span-full flex flex-col items-center justify-center py-10 text-center bg-bg border border-dashed border-border-dim rounded-[2rem]">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-accent/5 rounded-full flex items-center justify-center mb-4">
+                  <span className="text-2xl sm:text-3xl">⭐</span>
                 </div>
                 <p className="text-xs font-black text-text-main tracking-tight uppercase">Nada a melhorar por agora!</p>
-                <p className="text-[9px] text-text-muted font-black uppercase mt-2 tracking-[0.2em] opacity-60">As tuas finanças parecem otimizadas.</p>
+                <p className="text-[10px] text-text-muted font-black uppercase mt-2 tracking-[0.2em] opacity-60">As tuas finanças parecem otimizadas.</p>
               </div>
             )}
           </div>
-          <div className="mt-auto pt-10 flex justify-center">
-            <button className="bg-accent hover:bg-accent/90 text-white px-10 py-4 rounded-2xl text-[10px] font-black tracking-[0.25em] transition-all shadow-2xl shadow-accent/30 uppercase active:scale-95">
-              Refinar Sugestões
+          <div className="mt-8 sm:mt-10 pt-4 flex justify-center">
+            <button className="w-full sm:w-auto bg-accent hover:bg-accent/90 text-white px-8 sm:px-10 py-3.5 sm:py-4 rounded-2xl text-[10px] sm:text-[11px] font-black tracking-[0.25em] transition-all shadow-2xl shadow-accent/30 uppercase active:scale-95">
+              Refinar Sugestões de IA
             </button>
           </div>
         </motion.div>

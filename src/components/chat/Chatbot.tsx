@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MessageSquare, X, Send, Bot, User, Loader2, Minimize2, Maximize2 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import { cn } from '../../lib/utils';
 import { getGeminiResponse } from '../../services/geminiService';
 
@@ -34,16 +35,12 @@ export default function Chatbot({ userId }: ChatbotProps) {
     }
   }, [messages, isLoading]);
 
-  const handleSend = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (!input.trim() || isLoading) return;
+  const handleSendMessage = async (text: string) => {
+    if (!text.trim() || isLoading) return;
 
-    const userMessage = input.trim();
-    setInput('');
-    
     const newUserMsg: Message = {
       role: 'user',
-      text: userMessage,
+      text: text.trim(),
       timestamp: new Date(),
     };
 
@@ -56,7 +53,7 @@ export default function Chatbot({ userId }: ChatbotProps) {
         parts: [{ text: m.text }]
       }));
 
-      const response = await getGeminiResponse(userMessage, history, userId);
+      const response = await getGeminiResponse(text.trim(), history as any, userId);
       
       if (response) {
         setMessages(prev => [...prev, {
@@ -75,6 +72,20 @@ export default function Chatbot({ userId }: ChatbotProps) {
       setIsLoading(false);
     }
   };
+
+  const handleSend = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!input.trim() || isLoading) return;
+    const userMessage = input.trim();
+    setInput('');
+    handleSendMessage(userMessage);
+  };
+
+  const QUICK_ACTIONS = [
+    { text: 'Quanto gastei este mês?', label: '💸 Gastos' },
+    { text: 'Como posso poupar mais?', label: '💡 Dicas' },
+    { text: 'Listar subscrições anuais', label: '📅 Anuais' },
+  ];
 
   return (
     <div className="fixed bottom-8 right-8 z-[100] flex flex-col items-end">
@@ -150,12 +161,18 @@ export default function Chatbot({ userId }: ChatbotProps) {
                         {msg.role === 'user' ? 'TU' : <Bot size={16} />}
                       </div>
                       <div className={cn(
-                        "p-4 rounded-[1.5rem] text-xs font-bold leading-relaxed shadow-sm",
+                        "p-4 rounded-[1.5rem] text-xs font-bold leading-relaxed shadow-sm prose prose-invert prose-p:my-0 prose-ul:my-2 prose-li:my-0.5",
                         msg.role === 'user'
                           ? "bg-accent text-white rounded-tr-none"
                           : "bg-card border border-border-dim text-text-main rounded-tl-none"
                       )}>
-                        {msg.text}
+                        {msg.role === 'model' ? (
+                          <div className="markdown-content">
+                            <ReactMarkdown>{msg.text}</ReactMarkdown>
+                          </div>
+                        ) : (
+                          msg.text
+                        )}
                       </div>
                     </motion.div>
                   ))}
@@ -170,6 +187,21 @@ export default function Chatbot({ userId }: ChatbotProps) {
                     </div>
                   )}
                 </div>
+
+                {/* Quick Actions */}
+                {!isLoading && (
+                  <div className="px-6 py-3 bg-bg/50 border-t border-border-dim flex gap-2 overflow-x-auto no-scrollbar">
+                    {QUICK_ACTIONS.map((action, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => handleSendMessage(action.text)}
+                        className="whitespace-nowrap px-4 py-2 bg-card border border-border-dim rounded-xl text-[10px] font-black uppercase tracking-widest text-text-muted hover:border-accent hover:text-accent transition-all active:scale-95 shadow-sm"
+                      >
+                        {action.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
                 {/* Input */}
                 <form 
