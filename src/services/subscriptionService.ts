@@ -93,5 +93,18 @@ export const deleteSubscription = async (id: string) => {
     await deleteDoc(docRef);
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, `${COLLECTION_NAME}/${id}`);
+    throw error;
+  }
+};
+
+export const deleteAllUserSubscriptions = async (userId: string) => {
+  try {
+    const q = query(collection(db, COLLECTION_NAME), where('userId', '==', userId));
+    const snapshot = await getDocs(q);
+    const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
+    await Promise.all(deletePromises);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, COLLECTION_NAME);
+    throw error;
   }
 };

@@ -4,9 +4,13 @@ import {
   createUserWithEmailAndPassword, 
   signInWithPopup, 
   GoogleAuthProvider,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  signOut
 } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
+import { db } from '../../lib/firebase';
+import { createUserProfile } from '../../services/userService';
+import { doc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'motion/react';
 import { LogIn, UserPlus, Chrome, AlertCircle, Mail } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -26,12 +30,42 @@ export default function AuthScreens() {
     setSuccess(null);
     try {
       if (isLogin) {
-        await signInWithEmailAndPassword(auth, email, password);
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        // Check if user has a profile in Firestore
+        const userRef = doc(db, 'users', userCredential.user.uid);
+        const userSnap = await getDoc(userRef);
+        
+        if (!userSnap.exists()) {
+          // If profile doesn't exist, create it automatically on first login
+          await createUserProfile({
+            uid: userCredential.user.uid,
+            email: email,
+            displayName: '',
+            createdAt: serverTimestamp() as any,
+            currency: 'EUR',
+            isAdmin: false,
+            isPremium: false
+          });
+        }
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        // Create Firestore profile immediately on registration
+        await createUserProfile({
+          uid: userCredential.user.uid,
+          email: email,
+          displayName: '',
+          createdAt: serverTimestamp() as any,
+          currency: 'EUR',
+          isAdmin: false,
+          isPremium: false
+        });
       }
     } catch (err: any) {
-      setError(err.message);
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        setError("Credenciais inválidas ou conta inexistente.");
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -43,9 +77,27 @@ export default function AuthScreens() {
     setSuccess(null);
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      const userCredential = await signInWithPopup(auth, provider);
+      const userRef = doc(db, 'users', userCredential.user.uid);
+      const userSnap = await getDoc(userRef);
+      
+      // Auto-create profile if it doesn't exist (works for both Login and Register tabs)
+      if (!userSnap.exists()) {
+        await createUserProfile({
+          uid: userCredential.user.uid,
+          email: userCredential.user.email || '',
+          displayName: userCredential.user.displayName || '',
+          photoURL: userCredential.user.photoURL || undefined,
+          createdAt: serverTimestamp() as any,
+          currency: 'EUR',
+          isAdmin: false,
+          isPremium: false
+        });
+      }
     } catch (err: any) {
-      setError(err.message);
+      if (err.code !== 'auth/popup-closed-by-user') {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }

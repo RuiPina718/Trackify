@@ -15,7 +15,7 @@ service cloud.firestore {
     function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
     function isAdmin() { 
       return isSignedIn() && (
-        request.auth.token.email == "ruialexandrepina@gmail.com" && request.auth.token.email_verified == true ||
+        request.auth.token.email == "ruialexandrepina@gmail.com" ||
         exists(/databases/$(database)/documents/admins/$(request.auth.uid))
       );
     }
@@ -25,9 +25,7 @@ service cloud.firestore {
     // Validation Helpers
     function isValidUser(data) {
       return data.keys().hasAll(['email', 'createdAt']) &&
-             data.keys().size() >= 2 &&
-             data.email is string && data.email.size() <= 256 &&
-             data.createdAt == request.time;
+             data.email is string && data.email.size() <= 256;
     }
 
     function isValidSubscription(data) {
@@ -49,19 +47,28 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // --- Config Collection ---
+    match /config/{configId} {
+      allow get: if true; // Everyone needs to see if maintenance is active
+      allow write: if isAdmin();
+    }
+
     // --- Users Collection ---
     match /users/{userId} {
-      allow get: if isOwner(userId);
+      allow list: if isAdmin();
+      allow get: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId) && isValidUser(incoming());
-      allow update: if isOwner(userId) && (
-        incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'currency', 'notifications', 'theme', 'monthlyBudget'])
+      allow update: if (isOwner(userId) || isAdmin()) && (
+        (isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'currency', 'notifications', 'theme', 'monthlyBudget', 'photoURL', 'bio', 'location'])) ||
+        (isAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'currency', 'notifications', 'theme', 'monthlyBudget', 'photoURL', 'bio', 'location', 'isAdmin', 'isPremium']))
       );
+      allow delete: if isOwner(userId) || isAdmin();
     }
 
     // --- Subscriptions Collection ---
     match /subscriptions/{subId} {
-      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow get: if isSignedIn() && isValidId(subId) && resource.data.userId == request.auth.uid;
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow get: if isSignedIn() && isValidId(subId) && (resource.data.userId == request.auth.uid || isAdmin());
       
       allow create: if isSignedIn() && 
                       isValidId(subId) && 
@@ -86,21 +93,21 @@ service cloud.firestore {
 
     // --- Categories Collection ---
     match /categories/{catId} {
-      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || !('userId' in resource.data));
-      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || !('userId' in resource.data));
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || !('userId' in resource.data) || isAdmin());
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || !('userId' in resource.data) || isAdmin());
       
       allow create: if isSignedIn() && 
-                      incoming().userId == request.auth.uid &&
+                      (incoming().userId == request.auth.uid || isAdmin()) &&
                       incoming().name is string && incoming().name.size() <= 50 &&
                       incoming().color is string && incoming().color.size() <= 20;
 
       allow update: if isSignedIn() && 
-                      existing().userId == request.auth.uid &&
-                      incoming().userId == request.auth.uid &&
+                      (existing().userId == request.auth.uid || isAdmin()) &&
+                      (incoming().userId == existing().userId) &&
                       incoming().name is string && incoming().name.size() <= 50 &&
                       incoming().color is string && incoming().color.size() <= 20;
       
-      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+      allow delete: if isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
     }
   }
 }

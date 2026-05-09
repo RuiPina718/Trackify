@@ -16,9 +16,10 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
 import { exportUsersToCSV } from '../../lib/exportUtils';
-import { updateUserProfile } from '../../services/userService';
+import { updateUserProfile, deleteUserProfile, subscribeToAllUsers } from '../../services/userService';
 import { cn } from '../../lib/utils';
-import { AuditLog, SystemNotice } from '../../types';
+import { AuditLog, SystemNotice, AppConfig } from '../../types';
+import { getAppConfig, updateAppConfig, subscribeToAppConfig } from '../../services/configService';
 
 const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'users' | 'analytics' | 'system'>('users');
@@ -28,6 +29,12 @@ const AdminDashboard: React.FC = () => {
   const [actionStatus, setActionStatus] = useState<{message: string, type: 'success' | 'error'} | null>(null);
   
   // System State
+  const [appConfig, setAppConfig] = useState<AppConfig>({
+    maintenanceMode: false,
+    maintenanceMessage: '',
+    allowAdminsDuringMaintenance: true,
+    updatedAt: new Date().toISOString()
+  });
   const [notice, setNotice] = useState<SystemNotice>({
     id: 'global-notice',
     message: '',
@@ -78,6 +85,7 @@ const AdminDashboard: React.FC = () => {
   const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [showConfirmAccessModal, setShowConfirmAccessModal] = useState(false);
+  const [showConfirmMaintenanceModal, setShowConfirmMaintenanceModal] = useState(false);
   const [accessChangeData, setAccessChangeData] = useState<{user: UserProfile, type: 'admin' | 'premium', newValue: boolean} | null>(null);
 
   const filteredUsers = useMemo(() => {
@@ -180,21 +188,15 @@ const AdminDashboard: React.FC = () => {
     
     setLoading(true);
     try {
-      const q = query(collection(db, 'subscriptions'), where('userId', '==', userToDelete.uid));
-      const subsSnapshot = await getDocs(q);
-      
-      const batch = writeBatch(db);
-      subsSnapshot.docs.forEach((d) => batch.delete(d.ref));
-      batch.delete(doc(db, 'users', userToDelete.uid));
-      
-      await batch.commit();
+      // Use the centralized service that handles subscriptions, categories and profiles
+      await deleteUserProfile(userToDelete.uid);
       
       showStatus(`Utilizador ${userToDelete.email} removido com sucesso.`, 'success');
       setShowDeleteModal(false);
       setUserToDelete(null);
       setDeleteConfirmText('');
     } catch (error: any) {
-      showStatus(`Erro ao remover: ${error.message}`, 'error');
+      showStatus(`Erro ao remover utilizador: ${error.message}`, 'error');
     } finally {
       setLoading(false);
     }
@@ -215,28 +217,31 @@ const AdminDashboard: React.FC = () => {
   };
 
   useEffect(() => {
-    const usersQuery = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
-    const unsubUsers = onSnapshot(usersQuery, (snapshot) => {
-      const usersList = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          uid: doc.id,
-          ...data,
-          createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt || '',
-        } as UserProfile;
-      });
-      setUsers(usersList);
-      setLoading(false);
-    });
+    const unsubUsers = subscribeToAllUsers(
+      (usersList) => {
+        setUsers(usersList);
+        setLoading(false);
+      },
+      (error) => {
+        console.error('Critical error fetching users:', error);
+        showStatus('Erro ao carregar lista de utilizadores. Verifica as permissões de admin.', 'error');
+        setLoading(false);
+      }
+    );
 
     const unsubSubs = onSnapshot(collection(db, 'subscriptions'), (snapshot) => {
       const subsList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Subscription));
       setAllSubscriptions(subsList);
     });
 
+    const unsubConfig = subscribeToAppConfig((newConfig) => {
+      setAppConfig(newConfig);
+    });
+
     return () => {
       unsubUsers();
       unsubSubs();
+      unsubConfig();
     };
   }, []);
 
@@ -467,7 +472,15 @@ const AdminDashboard: React.FC = () => {
                     <td className="px-10 py-6">
                       <div className="flex flex-col">
                         <span className="text-xs font-bold text-text-main">
-                          {user.createdAt ? format(new Date(user.createdAt), 'dd MMM yyyy', { locale: pt }) : 'N/A'}
+                          {(() => {
+                            try {
+                              return user.createdAt && !isNaN(new Date(user.createdAt).getTime()) 
+                                ? format(new Date(user.createdAt), 'dd MMM yyyy', { locale: pt }) 
+                                : 'N/A';
+                            } catch (e) {
+                              return 'N/A';
+                            }
+                          })()}
                         </span>
                         <span className="text-[9px] text-text-muted uppercase font-black tracking-widest mt-1">
                           {userSubs.length} Subscrições
@@ -777,10 +790,21 @@ const AdminDashboard: React.FC = () => {
           <div className="bg-card border border-border-dim p-8 rounded-[3rem]">
             <h4 className="text-[10px] font-black uppercase tracking-widest text-accent mb-4">Modo Manutenção</h4>
             <p className="text-xs text-text-muted font-bold leading-relaxed mb-6">
-              Bloqueia o acesso a todos os utilizadores não-admin para realizar intervenções técnicas na BD.
+              {appConfig.maintenanceMode 
+                ? "A plataforma está atualmente em modo de manutenção. Apenas administradores podem aceder."
+                : "Bloqueia o acesso a todos os utilizadores não-admin para realizar intervenções técnicas na BD."}
             </p>
-            <button className="w-full py-4 bg-red-500/10 border border-red-500 text-red-500 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-2">
-              <AlertTriangle size={14} /> Ativar Modo Restritivo
+            <button 
+              onClick={() => setShowConfirmMaintenanceModal(true)}
+              className={cn(
+                "w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2",
+                appConfig.maintenanceMode 
+                  ? "bg-health text-white shadow-xl shadow-health/20" 
+                  : "bg-red-500/10 border border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+              )}
+            >
+              <AlertTriangle size={14} /> 
+              {appConfig.maintenanceMode ? 'Desativar Manutenção' : 'Ativar Modo Restritivo'}
             </button>
           </div>
         </div>
@@ -1191,6 +1215,79 @@ const AdminDashboard: React.FC = () => {
                     )}
                   >
                     {loading ? "A PROCESSAR..." : "CONFIRMAR"}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Maintenance Confirmation Modal */}
+      <AnimatePresence>
+        {showConfirmMaintenanceModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowConfirmMaintenanceModal(false)}
+              className="absolute inset-0 bg-black/90 backdrop-blur-md"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative bg-card border border-border-dim w-full max-w-md p-8 rounded-[3rem] shadow-2xl"
+            >
+              <div className="flex flex-col items-center text-center space-y-6">
+                <div className="relative">
+                  <div className={cn(
+                    "p-6 rounded-full text-3xl font-black ring-4",
+                    appConfig.maintenanceMode ? "bg-health/10 text-health ring-health/10" : "bg-red-500/10 text-red-500 ring-red-500/10"
+                  )}>
+                    <AlertTriangle size={48} />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <h3 className="text-2xl font-black text-text-main tracking-tight uppercase">
+                    {appConfig.maintenanceMode ? 'Desativar Manutenção' : 'Ativar Manutenção'}
+                  </h3>
+                  <p className="text-xs text-text-muted font-bold leading-relaxed px-4">
+                    {appConfig.maintenanceMode 
+                      ? "Tens a certeza que desejas restaurar o acesso público à plataforma?"
+                      : "Isto irá bloquear o acesso a todos os utilizadores comuns e exibir o ecrã de manutenção. Desejas continuar?"}
+                  </p>
+                </div>
+
+                <div className="w-full flex gap-4 pr-0">
+                  <button
+                    onClick={() => setShowConfirmMaintenanceModal(false)}
+                    className="flex-1 px-8 py-5 bg-bg border border-border-dim rounded-2xl text-[10px] font-black text-text-muted hover:border-text-muted transition-all uppercase tracking-widest"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setLoading(true);
+                      try {
+                        await updateAppConfig({ maintenanceMode: !appConfig.maintenanceMode });
+                        showStatus(appConfig.maintenanceMode ? 'Público restaurado' : 'Modo manutenção ativado', 'success');
+                        setShowConfirmMaintenanceModal(false);
+                      } catch (error: any) {
+                        showStatus(`Erro: ${error.message}`, 'error');
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    disabled={loading}
+                    className={cn(
+                      "flex-1 px-8 py-5 text-white rounded-2xl text-[10px] font-black transition-all uppercase tracking-widest shadow-xl",
+                      appConfig.maintenanceMode ? "bg-health shadow-health/20" : "bg-red-500 shadow-red-500/20"
+                    )}
+                  >
+                    {loading ? "..." : "CONFIRMAR"}
                   </button>
                 </div>
               </div>

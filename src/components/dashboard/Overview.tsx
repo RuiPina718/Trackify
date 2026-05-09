@@ -220,7 +220,10 @@ export default function Dashboard({ userId, userProfile, onNavigate }: Dashboard
             </h3>
           </div>
 
-          <div className="relative z-10 flex items-center justify-between bg-white/10 backdrop-blur-md p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-white/10 mt-8">
+          <div 
+            onClick={() => onNavigate?.('subscriptions')}
+            className="relative z-10 flex items-center justify-between bg-white/10 backdrop-blur-md p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-white/10 mt-8 cursor-pointer hover:bg-white/20 transition-all active:scale-[0.98]"
+          >
             <div className="flex items-center gap-3 sm:gap-4">
               <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-white/20 flex items-center justify-center">
                 <CreditCard size={14} className="text-white sm:size-4" />

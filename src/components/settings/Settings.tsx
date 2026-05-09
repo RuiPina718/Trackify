@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, sendPasswordResetEmail } from 'firebase/auth';
 import { UserProfile, NotificationPreferences, Category, PREDEFINED_CATEGORIES } from '../../types';
-import { getUserProfile, updateUserProfile, createUserProfile } from '../../services/userService';
+import { getUserProfile, updateUserProfile, createUserProfile, deleteUserProfile } from '../../services/userService';
 import { 
   Settings as SettingsIcon, 
   User as UserIcon, 
@@ -111,6 +111,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showSuccessDeleteModal, setShowSuccessDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   
   // Category Modal State
@@ -182,25 +183,38 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
     
     setSaving(true);
     try {
-      // 1. Delete Firestore Data First
-      const q = query(collection(db, 'subscriptions'), where('userId', '==', user.uid));
-      const subsSnapshot = await getDocs(q);
-      const batch = writeBatch(db);
-      subsSnapshot.docs.forEach((d) => batch.delete(d.ref));
-      batch.delete(doc(db, 'users', user.uid));
-      await batch.commit();
+      // 1. Delete Firestore Data using the centralized service
+      await deleteUserProfile(user.uid);
+      
+      // 2. Show Success Modal instead of immediate redirect
+      setShowDeleteModal(false);
+      setShowSuccessDeleteModal(true);
+    } catch (error: any) {
+      console.error('Error deleting account:', error);
+      setMessage({ type: 'error', text: `Erro ao eliminar dados: ${error.message || 'Tenta novamente.'}` });
+      setShowDeleteModal(false);
+    } finally {
+      setSaving(false);
+    }
+  };
 
-      // 2. Delete Auth User
+  const finalizeAccountDeletion = async () => {
+    setSaving(true);
+    try {
+      // 3. Finally delete the Auth User
       await user.delete();
       window.location.href = '/';
     } catch (error: any) {
-      console.error('Error deleting account:', error);
+      console.error('Error deleting auth user:', error);
       if (error.code === 'auth/requires-recent-login') {
-        setMessage({ type: 'error', text: 'Esta acção requer que tenhas feito login recentemente. Por favor, faz login de novo e tenta outra vez.' });
+        setMessage({ type: 'error', text: 'Esta acção requer que tenhas feito login recentemente. Por favor, faz login de novo para confirmar a eliminação total.' });
+        // Even if auth delete fails, the data is gone. We should probably sign out anyway.
+        await auth.signOut();
+        window.location.href = '/';
       } else {
-        setMessage({ type: 'error', text: 'Erro ao eliminar conta. Tenta mais tarde.' });
+        await auth.signOut();
+        window.location.href = '/';
       }
-      setShowDeleteModal(false);
     } finally {
       setSaving(false);
     }
@@ -1054,6 +1068,94 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                             </button>
                           </div>
                         </div>
+                      </div>
+                    </motion.div>
+                  </div>
+                )}
+              </AnimatePresence>
+
+              {/* Success Delete Modal */}
+              <AnimatePresence>
+                {showSuccessDeleteModal && (
+                  <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute inset-0 bg-black/90 backdrop-blur-md"
+                    />
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                      className="relative bg-card border border-border-dim w-full max-w-md p-10 rounded-[3rem] shadow-2xl overflow-hidden"
+                    >
+                      {/* Decorative Background Elements */}
+                      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-health via-accent to-health" />
+                      
+                      <div className="flex flex-col items-center text-center space-y-8">
+                        <div className="relative">
+                          <motion.div 
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ type: "spring", damping: 12, delay: 0.2 }}
+                            className="p-6 bg-health/10 text-health rounded-full"
+                          >
+                            <CheckCircle2 size={56} strokeWidth={2.5} />
+                          </motion.div>
+                          
+                          {/* Floating particles animation */}
+                          {[...Array(6)].map((_, i) => (
+                            <motion.div
+                              key={i}
+                              initial={{ opacity: 0, scale: 0 }}
+                              animate={{ 
+                                opacity: [0, 1, 0], 
+                                scale: [0, 1, 0.5],
+                                x: Math.cos(i * 60 * Math.PI / 180) * 80,
+                                y: Math.sin(i * 60 * Math.PI / 180) * 80
+                              }}
+                              transition={{ 
+                                duration: 2, 
+                                repeat: Infinity, 
+                                delay: i * 0.2,
+                                ease: "easeOut"
+                              }}
+                              className="absolute top-1/2 left-1/2 w-2 h-2 bg-health/30 rounded-full"
+                            />
+                          ))}
+                        </div>
+
+                        <div className="space-y-3">
+                          <h3 className="text-3xl font-black text-text-main tracking-tight uppercase italic">
+                            Conta Eliminada!
+                          </h3>
+                          <p className="text-xs text-text-muted font-bold leading-relaxed px-4">
+                            Todos os teus dados foram removidos dos nossos servidores com sucesso. 
+                            Foi um prazer ter-te connosco!
+                          </p>
+                        </div>
+
+                        <button
+                          onClick={finalizeAccountDeletion}
+                          disabled={saving}
+                          className="group relative w-full overflow-hidden bg-accent text-white py-5 rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] transition-all hover:shadow-2xl hover:shadow-accent/40 active:scale-95 disabled:opacity-50"
+                        >
+                          <span className="relative z-10 flex items-center justify-center gap-2">
+                            {saving ? "A REDIRECIONAR..." : "CONTINUAR PARA O INÍCIO"}
+                            <Save size={14} className="group-hover:translate-x-1 transition-transform" />
+                          </span>
+                          <motion.div 
+                            className="absolute inset-0 bg-white/20"
+                            initial={{ x: "-100%" }}
+                            whileHover={{ x: "100%" }}
+                            transition={{ duration: 0.6 }}
+                          />
+                        </button>
+                        
+                        <p className="text-[9px] font-black text-text-muted/30 uppercase tracking-widest pt-2">
+                          SUBMANAGER PRO • SISTEMA DE GESTÃO
+                        </p>
                       </div>
                     </motion.div>
                   </div>

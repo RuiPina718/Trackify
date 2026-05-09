@@ -59,6 +59,13 @@ export interface SystemNotice {
   updatedAt: string;
 }
 
+export interface AppConfig {
+  maintenanceMode: boolean;
+  maintenanceMessage?: string;
+  allowAdminsDuringMaintenance: boolean;
+  updatedAt: string;
+}
+
 export interface Category {
   id: string;
   userId?: string;

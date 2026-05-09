@@ -7,7 +7,8 @@ import {
   query, 
   where, 
   onSnapshot,
-  orderBy
+  orderBy,
+  getDocs
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Category } from '../types';
@@ -53,4 +54,14 @@ export const updateCategory = async (id: string, updates: Partial<Category>) => 
 
 export const deleteCategory = async (id: string) => {
   return deleteDoc(doc(db, CATEGORIES_COLLECTION, id));
+};
+
+export const deleteAllUserCategories = async (userId: string) => {
+  const q = query(
+    collection(db, CATEGORIES_COLLECTION),
+    where('userId', '==', userId)
+  );
+  const snapshot = await getDocs(q); // need to import getDocs
+  const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
+  return Promise.all(deletePromises);
 };

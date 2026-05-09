@@ -288,8 +288,16 @@ export default function Shell({ user }: ShellProps) {
                       {urgentAlerts.length > 0 ? (
                         <div className="p-4 space-y-3">
                           {urgentAlerts.map(sub => (
-                            <div key={sub.id} className="p-4 bg-bg border border-border-dim rounded-2xl flex items-center gap-4 group hover:border-accent transition-all">
-                              <div className="w-10 h-10 bg-card rounded-xl border border-border-dim flex items-center justify-center text-accent group-hover:bg-accent group-hover:text-white transition-all shadow-sm">
+                            <button 
+                              key={sub.id} 
+                              onClick={() => {
+                                setShowNotifications(false);
+                                setActiveView('subscriptions');
+                                handleEdit(sub as Subscription);
+                              }}
+                              className="w-full text-left p-4 bg-bg border border-border-dim rounded-2xl flex items-center gap-4 group hover:border-accent transition-all active:scale-[0.98]"
+                            >
+                              <div className="w-10 h-10 bg-card rounded-xl border border-border-dim flex items-center justify-center text-accent group-hover:bg-accent group-hover:text-white transition-all shadow-sm shrink-0">
                                 <IconRenderer name={sub.icon} size={18} fallback={<span className="font-black text-xs">{sub.name.charAt(0)}</span>} />
                               </div>
                               <div className="min-w-0 flex-1">
@@ -304,7 +312,7 @@ export default function Shell({ user }: ShellProps) {
                                   Vence a {format(sub.nextDate, "dd 'de' MMM", { locale: pt })}
                                 </p>
                               </div>
-                            </div>
+                            </button>
                           ))}
                         </div>
                       ) : (
