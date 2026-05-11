@@ -62,10 +62,10 @@ export default function Chatbot({ userId }: ChatbotProps) {
           timestamp: new Date(),
         }]);
       }
-    } catch (error) {
+    } catch (error: any) {
       setMessages(prev => [...prev, {
         role: 'model',
-        text: 'Desculpa, ocorreu um erro ao processar a tua mensagem. Tenta novamente.',
+        text: error.message || 'Desculpa, ocorreu um erro ao processar a tua mensagem. Tenta novamente.',
         timestamp: new Date(),
       }]);
     } finally {

@@ -30,30 +30,12 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// In Vercel, the file might be in different places relative to the function
-const getFirebaseConfig = () => {
-  const paths = [
-    path.join(process.cwd(), 'firebase-applet-config.json'),
-    path.join(__dirname, 'firebase-applet-config.json'),
-    path.join(__dirname, '..', 'firebase-applet-config.json')
-  ];
-
-  for (const p of paths) {
-    if (fs.existsSync(p)) {
-      console.log(`Found firebase config at: ${p}`);
-      return JSON.parse(fs.readFileSync(p, 'utf8'));
-    }
-  }
-  throw new Error('Could not find firebase-applet-config.json');
-};
-
-const firebaseConfig = getFirebaseConfig();
+const firebaseConfigPath = path.join(__dirname, 'firebase-applet-config.json');
+const firebaseConfig = JSON.parse(fs.readFileSync(firebaseConfigPath, 'utf8'));
 
 console.log('--- Server Startup ---');
 console.log('Project ID:', firebaseConfig.projectId);
 console.log('Database ID:', firebaseConfig.firestoreDatabaseId);
-console.log('Gemini API Key configured:', !!process.env.GEMINI_API_KEY);
-console.log('Google Client ID configured:', !!(process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID));
 
 // Initialize Firebase Client SDK for backend (to use API Key and Rules)
 const firebaseApp = initializeApp(firebaseConfig);
@@ -71,18 +53,13 @@ app.get('/api/health', async (req, res) => {
     status: 'ok', 
     projectId: firebaseConfig.projectId,
     databaseId: firebaseConfig.firestoreDatabaseId,
-    env: process.env.NODE_ENV,
-    configStatus: {
-      gemini: !!process.env.GEMINI_API_KEY,
-      googleClient: !!(process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID),
-      googleSecret: !!process.env.GOOGLE_CLIENT_SECRET
-    }
+    env: process.env.NODE_ENV
   });
 });
 
 // Google OAuth Configuration
 const oauth2Client = new google.auth.OAuth2(
-  process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
   // We'll construct the redirect URI dynamically based on the request host
 );
@@ -136,7 +113,7 @@ app.get(['/auth/callback', '/auth/callback/'], async (req, res) => {
     
     // Create a fresh client for token exchange to ensure redirect_uri consistency
     const callbackClient = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
       redirectUri
     );
@@ -216,7 +193,7 @@ async function deleteCalendarEvent(userId: string, subscriptionId: string, refre
   const googleEventId = mapping.data().googleEventId;
 
   const userOAuth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET
   );
   userOAuth2Client.setCredentials({ refresh_token: refreshToken });
@@ -250,7 +227,7 @@ async function syncSingleSubscription(userId: string, subscriptionId: string, re
 
   // 2. Setup Google Calendar Client
   const userOAuth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET
   );
   userOAuth2Client.setCredentials({ refresh_token: refreshToken });
@@ -349,12 +326,9 @@ app.post('/api/calendar/sync-subscription', async (req, res) => {
     const integrationRef = doc(db, 'calendar_integrations', userId);
     const integrationDoc = await getDoc(integrationRef);
     if (!integrationDoc.exists()) {
-      return res.status(404).json({ error: 'Calendar integration not found. Reconnect your calendar.' });
+      return res.status(404).json({ error: 'Calendar integration not found' });
     }
     const { refreshToken } = integrationDoc.data()!;
-    if (!refreshToken) {
-      return res.status(400).json({ error: 'Missing refresh token. Please reconnect your calendar.' });
-    }
 
     await syncSingleSubscription(userId, subscriptionId, refreshToken);
 
@@ -364,12 +338,9 @@ app.post('/api/calendar/sync-subscription', async (req, res) => {
     });
 
     res.json({ success: true });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error syncing to calendar:', error);
-    res.status(500).json({ 
-      error: 'Failed to sync with Google Calendar',
-      details: error.message || 'Unknown error'
-    });
+    res.status(500).json({ error: 'Failed to sync with Google Calendar' });
   }
 });
 
@@ -385,10 +356,6 @@ app.post('/api/calendar/sync-all', async (req, res) => {
       return res.status(404).json({ error: 'Calendar integration not found' });
     }
     const { refreshToken } = integrationDoc.data()!;
-    if (!refreshToken) {
-      console.error(`User ${userId} has a connected status but no refresh token in database.`);
-      return res.status(400).json({ error: 'Refresh token missing. Reconnect your calendar.' });
-    }
 
     // Get all active subscriptions for the user
     const subsRef = collection(db, 'subscriptions');
@@ -412,12 +379,9 @@ app.post('/api/calendar/sync-all', async (req, res) => {
     });
 
     res.json({ success: true, count: subsSnapshot.size });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error syncing all subscriptions:', error);
-    res.status(500).json({ 
-      error: 'Failed to sync all subscriptions',
-      details: error.message || 'Unknown error'
-    });
+    res.status(500).json({ error: 'Failed to sync all subscriptions' });
   }
 });
 
@@ -464,10 +428,6 @@ app.post('/api/calendar/delete-event', async (req, res) => {
   }
 });
 
-
-// AI Chat Endpoint - DEPRECATED: Use client-side Gemini SDK
-// AI Insights Endpoint - DEPRECATED: Use client-side Gemini SDK
-
 // Vite middleware for development
 if (process.env.NODE_ENV !== 'production') {
   const vite = await createViteServer({
@@ -491,6 +451,4 @@ if (process.env.NODE_ENV !== 'production') {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
-
-export default app;
 
