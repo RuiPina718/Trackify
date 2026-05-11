@@ -8,6 +8,7 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, db } from './lib/firebase';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
+import { Analytics } from '@vercel/analytics/react';
 import AuthScreens from './components/auth/AuthScreens';
 import Shell from './components/layout/Shell';
 import MaintenanceView from './components/MaintenanceView';
@@ -73,10 +74,13 @@ export default function App() {
 
   if (loading || !appConfig) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-bg">
-        <Loader2 className="w-10 h-10 text-accent animate-spin mb-6" />
-        <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.3em]">Trackify is loading</p>
-      </div>
+      <>
+        <div className="flex flex-col items-center justify-center min-h-screen bg-bg">
+          <Loader2 className="w-10 h-10 text-accent animate-spin mb-6" />
+          <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.3em]">Trackify is loading</p>
+        </div>
+        <Analytics />
+      </>
     );
   }
 
@@ -90,35 +94,50 @@ export default function App() {
       // Show Login Screen if requested during maintenance
       if (showLoginDuringMaintenance && !user) {
         return (
-          <div className="min-h-screen bg-bg">
-            <div className="fixed top-6 left-6 z-50">
-              <button 
-                onClick={() => setShowLoginDuringMaintenance(false)}
-                className="px-4 py-2 bg-card border border-border-dim rounded-xl text-[10px] font-black uppercase tracking-widest hover:border-accent transition-all"
-              >
-                Voltar
-              </button>
+          <>
+            <div className="min-h-screen bg-bg">
+              <div className="fixed top-6 left-6 z-50">
+                <button 
+                  onClick={() => setShowLoginDuringMaintenance(false)}
+                  className="px-4 py-2 bg-card border border-border-dim rounded-xl text-[10px] font-black uppercase tracking-widest hover:border-accent transition-all"
+                >
+                  Voltar
+                </button>
+              </div>
+              <AuthScreens />
             </div>
-            <AuthScreens />
-          </div>
+            <Analytics />
+          </>
         );
       }
 
       return (
-        <MaintenanceView 
-          message={appConfig.maintenanceMessage} 
-          isAdmin={isAdmin && appConfig.allowAdminsDuringMaintenance}
-          onEnterAnyway={() => setBypassMaintenance(true)}
-          onStaffLogin={() => setShowLoginDuringMaintenance(true)}
-        />
+        <>
+          <MaintenanceView 
+            message={appConfig.maintenanceMessage} 
+            isAdmin={isAdmin && appConfig.allowAdminsDuringMaintenance}
+            onEnterAnyway={() => setBypassMaintenance(true)}
+            onStaffLogin={() => setShowLoginDuringMaintenance(true)}
+          />
+          <Analytics />
+        </>
       );
     }
   }
 
   if (!user) {
-    return <AuthScreens />;
+    return (
+      <>
+        <AuthScreens />
+        <Analytics />
+      </>
+    );
   }
 
-  return <Shell user={user} />;
+  return (
+    <>
+      <Shell user={user} />
+      <Analytics />
+    </>
+  );
 }
-
