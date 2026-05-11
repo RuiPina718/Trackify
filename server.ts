@@ -3,6 +3,7 @@ import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { google } from 'googleapis';
+import { GoogleGenAI, Type } from "@google/genai";
 import { initializeApp } from 'firebase/app';
 import { 
   getFirestore, 
@@ -48,6 +49,9 @@ const getFirebaseConfig = () => {
 };
 
 const firebaseConfig = getFirebaseConfig();
+
+// Initialize Gemini
+const genAI = new GoogleGenAI(process.env.GEMINI_API_KEY || "");
 
 console.log('--- Server Startup ---');
 console.log('Project ID:', firebaseConfig.projectId);
@@ -448,6 +452,119 @@ app.post('/api/calendar/delete-event', async (req, res) => {
   } catch (error) {
     console.error('Error in delete-event:', error);
     res.status(500).json({ error: 'Failed to delete event' });
+  }
+});
+
+// AI Chat Endpoint
+app.post('/api/ai/chat', async (req, res) => {
+  const { message, history, userId } = req.body;
+  if (!message || !userId) return res.status(400).json({ error: 'Missing message or userId' });
+
+  try {
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-3-flash-preview",
+      systemInstruction: `És o Trackify AI, um assistente financeiro inteligente e amigável.
+O teu objetivo é ajudar os utilizadores a gerir as suas subscrições e finanças.
+Dá conselhos práticos, explica termos financeiros de forma simples e ajuda a identificar onde podem poupar.
+Podes adicionar subscrições para o utilizador se ele pedir.
+Podes também listar as subscrições atuais do utilizador para dar conselhos mais precisos.
+Mantém as tuas respostas curtas, profissionais e úteis. Usa português de Portugal (PT-PT).`
+    });
+
+    const addSubscriptionTool = {
+      functionDeclarations: [{
+        name: "addSubscription",
+        description: "Adiciona uma nova subscrição para o utilizador.",
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            name: { type: Type.STRING },
+            amount: { type: Type.NUMBER },
+            currency: { type: Type.STRING },
+            billingCycle: { type: Type.STRING },
+            category: { type: Type.STRING },
+            billingDay: { type: Type.NUMBER },
+          },
+          required: ["name", "amount", "currency", "billingCycle", "category", "billingDay"],
+        },
+      }]
+    };
+
+    const chat = model.startChat({
+      history: history.map((h: any) => ({
+        role: h.role === 'user' ? 'user' : 'model',
+        parts: h.parts
+      })),
+      tools: [addSubscriptionTool]
+    });
+
+    const result = await chat.sendMessage(message);
+    const response = await result.response;
+    
+    const functionCalls = response.functionCalls();
+    if (functionCalls && functionCalls.length > 0) {
+      const call = functionCalls[0];
+      if (call.name === 'addSubscription') {
+        const args = call.args as any;
+        
+        // Logical migration from client-side createSubscription
+        const subData = {
+          userId,
+          name: String(args.name),
+          amount: Number(args.amount),
+          currency: String(args.currency || 'EUR').toUpperCase(),
+          billingCycle: (args.billingCycle === 'anual' || args.billingCycle === 'yearly') ? 'yearly' : 'monthly',
+          category: String(args.category || 'Outros'),
+          billingDay: Number(args.billingDay) || 1,
+          status: 'active',
+          startDate: new Date().toISOString().split('T')[0],
+          createdAt: serverTimestamp()
+        };
+
+        await addDoc(collection(db, 'subscriptions'), subData);
+        
+        return res.json({ 
+          text: `Com certeza! Já adicionei o **${args.name}** (${args.amount} ${args.currency}) às tuas subscrições.` 
+        });
+      }
+    }
+
+    res.json({ text: response.text() });
+  } catch (error: any) {
+    console.error('AI Chat Error:', error);
+    res.status(500).json({ error: 'AI failed to respond', details: error.message });
+  }
+});
+
+// AI Insights Endpoint
+app.post('/api/ai/insights', async (req, res) => {
+  const { subscriptions, monthlyBudget } = req.body;
+  if (!subscriptions) return res.status(400).json({ error: 'Missing subscriptions' });
+
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+    
+    const prompt = `
+      Analisa estas subscrições e gera 3 insights estratégicos únicos em Português de Portugal (PT-PT).
+      Subscrições: ${JSON.stringify(subscriptions)}
+      Orçamento: ${monthlyBudget || 'não definido'}
+      
+      Retorna APENAS um array JSON literal com este formato:
+      [{"title": "...", "description": "...", "type": "warning|info|suggestion", "icon": "emoji", "score": 0-100}]
+    `;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+    
+    // Clean potential markdown from response
+    const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    const insights = JSON.parse(jsonStr);
+    
+    res.json(insights);
+  } catch (error: any) {
+    console.error('AI Insights Error:', error);
+    res.status(500).json({ error: 'AI failed to generate insights', details: error.message });
   }
 });
 
