@@ -415,9 +415,9 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
           lastSyncAt: data.lastSyncAt?.toDate?.()?.toISOString() || data.lastSyncAt || ''
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error syncing all:', error);
-      setMessage({ type: 'error', text: 'Erro ao sincronizar subscrições.' });
+      setMessage({ type: 'error', text: `Erro: ${error.message || 'Erro ao sincronizar subscrições.'}` });
     } finally {
       setCalendarLoading(false);
     }
@@ -957,6 +957,21 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                           <div className="w-1.5 h-1.5 rounded-full bg-accent mt-1.5 shrink-0" />
                           <p className="text-[10px] text-text-muted font-medium">Atualiza automaticamente se alterares uma data.</p>
                         </div>
+                      </div>
+
+                      <div className="mt-8 p-6 bg-red-500/5 border border-red-500/10 rounded-2xl space-y-3">
+                        <div className="flex items-center gap-2 text-red-500">
+                          <AlertCircle size={14} />
+                          <p className="text-[10px] font-black uppercase tracking-widest">Problemas ao ligar?</p>
+                        </div>
+                        <p className="text-[10px] text-text-muted leading-relaxed">
+                          Se o login falhar, certifica-te que:
+                          <br />• Definiste <strong>GOOGLE_CLIENT_ID</strong> e <strong>GOOGLE_CLIENT_SECRET</strong> no AI Studio.
+                          <br />• Adicionaste o "Authorized redirect URI" no Google Cloud Console:
+                          <br /><code className="bg-bg p-1 rounded border border-border-dim block mt-1 overflow-x-auto select-all">
+                            {window.location.origin}/auth/callback
+                          </code>
+                        </p>
                       </div>
                     </div>
                   </div>

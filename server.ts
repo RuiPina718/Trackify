@@ -3,7 +3,6 @@ import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { google } from 'googleapis';
-import { GoogleGenAI, Type } from "@google/genai";
 import { initializeApp } from 'firebase/app';
 import { 
   getFirestore, 
@@ -50,12 +49,11 @@ const getFirebaseConfig = () => {
 
 const firebaseConfig = getFirebaseConfig();
 
-// Initialize Gemini
-const genAI = new GoogleGenAI(process.env.GEMINI_API_KEY || "");
-
 console.log('--- Server Startup ---');
 console.log('Project ID:', firebaseConfig.projectId);
 console.log('Database ID:', firebaseConfig.firestoreDatabaseId);
+console.log('Gemini API Key configured:', !!process.env.GEMINI_API_KEY);
+console.log('Google Client ID configured:', !!(process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID));
 
 // Initialize Firebase Client SDK for backend (to use API Key and Rules)
 const firebaseApp = initializeApp(firebaseConfig);
@@ -73,13 +71,18 @@ app.get('/api/health', async (req, res) => {
     status: 'ok', 
     projectId: firebaseConfig.projectId,
     databaseId: firebaseConfig.firestoreDatabaseId,
-    env: process.env.NODE_ENV
+    env: process.env.NODE_ENV,
+    configStatus: {
+      gemini: !!process.env.GEMINI_API_KEY,
+      googleClient: !!(process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID),
+      googleSecret: !!process.env.GOOGLE_CLIENT_SECRET
+    }
   });
 });
 
 // Google OAuth Configuration
 const oauth2Client = new google.auth.OAuth2(
-  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
   // We'll construct the redirect URI dynamically based on the request host
 );
@@ -133,7 +136,7 @@ app.get(['/auth/callback', '/auth/callback/'], async (req, res) => {
     
     // Create a fresh client for token exchange to ensure redirect_uri consistency
     const callbackClient = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
       redirectUri
     );
@@ -213,7 +216,7 @@ async function deleteCalendarEvent(userId: string, subscriptionId: string, refre
   const googleEventId = mapping.data().googleEventId;
 
   const userOAuth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET
   );
   userOAuth2Client.setCredentials({ refresh_token: refreshToken });
@@ -247,7 +250,7 @@ async function syncSingleSubscription(userId: string, subscriptionId: string, re
 
   // 2. Setup Google Calendar Client
   const userOAuth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET
   );
   userOAuth2Client.setCredentials({ refresh_token: refreshToken });
@@ -346,9 +349,12 @@ app.post('/api/calendar/sync-subscription', async (req, res) => {
     const integrationRef = doc(db, 'calendar_integrations', userId);
     const integrationDoc = await getDoc(integrationRef);
     if (!integrationDoc.exists()) {
-      return res.status(404).json({ error: 'Calendar integration not found' });
+      return res.status(404).json({ error: 'Calendar integration not found. Reconnect your calendar.' });
     }
     const { refreshToken } = integrationDoc.data()!;
+    if (!refreshToken) {
+      return res.status(400).json({ error: 'Missing refresh token. Please reconnect your calendar.' });
+    }
 
     await syncSingleSubscription(userId, subscriptionId, refreshToken);
 
@@ -358,9 +364,12 @@ app.post('/api/calendar/sync-subscription', async (req, res) => {
     });
 
     res.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error syncing to calendar:', error);
-    res.status(500).json({ error: 'Failed to sync with Google Calendar' });
+    res.status(500).json({ 
+      error: 'Failed to sync with Google Calendar',
+      details: error.message || 'Unknown error'
+    });
   }
 });
 
@@ -455,118 +464,8 @@ app.post('/api/calendar/delete-event', async (req, res) => {
   }
 });
 
-// AI Chat Endpoint
-app.post('/api/ai/chat', async (req, res) => {
-  const { message, history, userId } = req.body;
-  if (!message || !userId) return res.status(400).json({ error: 'Missing message or userId' });
-
-  try {
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-3-flash-preview",
-      systemInstruction: `És o Trackify AI, um assistente financeiro inteligente e amigável.
-O teu objetivo é ajudar os utilizadores a gerir as suas subscrições e finanças.
-Dá conselhos práticos, explica termos financeiros de forma simples e ajuda a identificar onde podem poupar.
-Podes adicionar subscrições para o utilizador se ele pedir.
-Podes também listar as subscrições atuais do utilizador para dar conselhos mais precisos.
-Mantém as tuas respostas curtas, profissionais e úteis. Usa português de Portugal (PT-PT).`
-    });
-
-    const addSubscriptionTool = {
-      functionDeclarations: [{
-        name: "addSubscription",
-        description: "Adiciona uma nova subscrição para o utilizador.",
-        parameters: {
-          type: Type.OBJECT,
-          properties: {
-            name: { type: Type.STRING },
-            amount: { type: Type.NUMBER },
-            currency: { type: Type.STRING },
-            billingCycle: { type: Type.STRING },
-            category: { type: Type.STRING },
-            billingDay: { type: Type.NUMBER },
-          },
-          required: ["name", "amount", "currency", "billingCycle", "category", "billingDay"],
-        },
-      }]
-    };
-
-    const chat = model.startChat({
-      history: history.map((h: any) => ({
-        role: h.role === 'user' ? 'user' : 'model',
-        parts: h.parts
-      })),
-      tools: [addSubscriptionTool]
-    });
-
-    const result = await chat.sendMessage(message);
-    const response = await result.response;
-    
-    const functionCalls = response.functionCalls();
-    if (functionCalls && functionCalls.length > 0) {
-      const call = functionCalls[0];
-      if (call.name === 'addSubscription') {
-        const args = call.args as any;
-        
-        // Logical migration from client-side createSubscription
-        const subData = {
-          userId,
-          name: String(args.name),
-          amount: Number(args.amount),
-          currency: String(args.currency || 'EUR').toUpperCase(),
-          billingCycle: (args.billingCycle === 'anual' || args.billingCycle === 'yearly') ? 'yearly' : 'monthly',
-          category: String(args.category || 'Outros'),
-          billingDay: Number(args.billingDay) || 1,
-          status: 'active',
-          startDate: new Date().toISOString().split('T')[0],
-          createdAt: serverTimestamp()
-        };
-
-        await addDoc(collection(db, 'subscriptions'), subData);
-        
-        return res.json({ 
-          text: `Com certeza! Já adicionei o **${args.name}** (${args.amount} ${args.currency}) às tuas subscrições.` 
-        });
-      }
-    }
-
-    res.json({ text: response.text() });
-  } catch (error: any) {
-    console.error('AI Chat Error:', error);
-    res.status(500).json({ error: 'AI failed to respond', details: error.message });
-  }
-});
-
-// AI Insights Endpoint
-app.post('/api/ai/insights', async (req, res) => {
-  const { subscriptions, monthlyBudget } = req.body;
-  if (!subscriptions) return res.status(400).json({ error: 'Missing subscriptions' });
-
-  try {
-    const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
-    
-    const prompt = `
-      Analisa estas subscrições e gera 3 insights estratégicos únicos em Português de Portugal (PT-PT).
-      Subscrições: ${JSON.stringify(subscriptions)}
-      Orçamento: ${monthlyBudget || 'não definido'}
-      
-      Retorna APENAS um array JSON literal com este formato:
-      [{"title": "...", "description": "...", "type": "warning|info|suggestion", "icon": "emoji", "score": 0-100}]
-    `;
-
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-    
-    // Clean potential markdown from response
-    const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    const insights = JSON.parse(jsonStr);
-    
-    res.json(insights);
-  } catch (error: any) {
-    console.error('AI Insights Error:', error);
-    res.status(500).json({ error: 'AI failed to generate insights', details: error.message });
-  }
-});
+// AI Chat Endpoint - DEPRECATED: Use client-side Gemini SDK
+// AI Insights Endpoint - DEPRECATED: Use client-side Gemini SDK
 
 // Vite middleware for development
 if (process.env.NODE_ENV !== 'production') {
