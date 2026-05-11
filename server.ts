@@ -30,8 +30,24 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const firebaseConfigPath = path.join(__dirname, 'firebase-applet-config.json');
-const firebaseConfig = JSON.parse(fs.readFileSync(firebaseConfigPath, 'utf8'));
+// In Vercel, the file might be in different places relative to the function
+const getFirebaseConfig = () => {
+  const paths = [
+    path.join(process.cwd(), 'firebase-applet-config.json'),
+    path.join(__dirname, 'firebase-applet-config.json'),
+    path.join(__dirname, '..', 'firebase-applet-config.json')
+  ];
+
+  for (const p of paths) {
+    if (fs.existsSync(p)) {
+      console.log(`Found firebase config at: ${p}`);
+      return JSON.parse(fs.readFileSync(p, 'utf8'));
+    }
+  }
+  throw new Error('Could not find firebase-applet-config.json');
+};
+
+const firebaseConfig = getFirebaseConfig();
 
 console.log('--- Server Startup ---');
 console.log('Project ID:', firebaseConfig.projectId);
@@ -356,6 +372,10 @@ app.post('/api/calendar/sync-all', async (req, res) => {
       return res.status(404).json({ error: 'Calendar integration not found' });
     }
     const { refreshToken } = integrationDoc.data()!;
+    if (!refreshToken) {
+      console.error(`User ${userId} has a connected status but no refresh token in database.`);
+      return res.status(400).json({ error: 'Refresh token missing. Reconnect your calendar.' });
+    }
 
     // Get all active subscriptions for the user
     const subsRef = collection(db, 'subscriptions');
@@ -379,9 +399,12 @@ app.post('/api/calendar/sync-all', async (req, res) => {
     });
 
     res.json({ success: true, count: subsSnapshot.size });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error syncing all subscriptions:', error);
-    res.status(500).json({ error: 'Failed to sync all subscriptions' });
+    res.status(500).json({ 
+      error: 'Failed to sync all subscriptions',
+      details: error.message || 'Unknown error'
+    });
   }
 });
 
@@ -451,4 +474,6 @@ if (process.env.NODE_ENV !== 'production') {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
+
+export default app;
 

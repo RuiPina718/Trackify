@@ -397,7 +397,10 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
         body: JSON.stringify({ userId: user.uid }),
       });
       
-      if (!response.ok) throw new Error('Falha ao sincronizar');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.details || errorData.error || 'Falha ao sincronizar');
+      }
       
       const { count } = await response.json();
       setMessage({ type: 'success', text: `${count} subscrições sincronizadas com sucesso!` });
