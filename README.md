@@ -1,6 +1,6 @@
-# 💳 SubManager Pro
+# 💳 Trackify
 
-O **SubManager Pro** é uma solução premium para a gestão inteligente de subscrições e gastos recorrentes. Construído com uma arquitetura moderna e focado na experiência do utilizador, a plataforma transforma a forma como interage com as suas finanças digitais, oferecendo clareza, previsibilidade e poupança real.
+O **Trackify** é uma solução premium para a gestão inteligente de subscrições e gastos recorrentes. Construído com uma arquitetura moderna e focado na experiência do utilizador, a plataforma transforma a forma como interage com as suas finanças digitais, oferecendo clareza, previsibilidade e poupança real.
 
 ![Preview](https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&q=80&w=1200)
 
