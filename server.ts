@@ -464,6 +464,7 @@ app.post('/api/calendar/delete-event', async (req, res) => {
   }
 });
 
+
 // AI Chat Endpoint - DEPRECATED: Use client-side Gemini SDK
 // AI Insights Endpoint - DEPRECATED: Use client-side Gemini SDK
 
