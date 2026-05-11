@@ -1,57 +1,55 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", sans-serif;
   
   --color-bg: var(--bg);
   --color-card: var(--card);
-  --color-accent: #3b82f6;
+  --color-accent: #6366f1; /* Indigo accent */
   --color-text-main: var(--text-main);
   --color-text-muted: var(--text-muted);
   --color-border-dim: var(--border-dim);
   
-  --color-streaming: #e50914;
-  --color-software: #00a4ef;
-  --color-gaming: #107c10;
-  --color-health: #10b981;
+  --color-streaming: #ff4b2b;
+  --color-software: #00bef8;
+  --color-gaming: #22c55e;
+  --color-health: #fb7185;
+
+  --shadow-premium: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
 }
 
 :root {
-  --bg: #f8fafc;
+  --bg: #fdfdfb; /* Warmer off-white */
   --card: #ffffff;
-  --text-main: #0f172a;
-  --text-muted: #64748b;
-  --border-dim: #e2e8f0;
+  --text-main: #0a0a0a;
+  --text-muted: #737373;
+  --border-dim: #e5e5e5;
 }
 
 .dark {
-  --bg: #0b0e14;
-  --card: #161b22;
-  --text-main: #f0f6fc;
-  --text-muted: #8b949e;
-  --border-dim: #30363d;
+  --bg: #050505; /* Black background */
+  --card: #0e0e0e; /* Very dark card */
+  --text-main: #f5f5f5;
+  --text-muted: #a3a3a3;
+  --border-dim: #1f1f1f;
 }
 
 @layer base {
   body {
-    @apply bg-bg text-text-main font-sans;
+    @apply bg-bg text-text-main font-sans selection:bg-accent/30 antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display tracking-tight transition-colors;
   }
 
   .markdown-content p {
     @apply mb-2 last:mb-0;
   }
-  .markdown-content ul, .markdown-content ol {
-    @apply mb-2 ml-4 list-disc;
-  }
-  .markdown-content li {
-    @apply mb-1;
-  }
-  .markdown-content strong {
-    @apply font-extrabold text-accent;
-  }
 }
 
-.markdown-body {
-  @apply text-text-main;
+.micro-label {
+  @apply text-[10px] font-black uppercase tracking-[0.14em] text-text-muted;
 }

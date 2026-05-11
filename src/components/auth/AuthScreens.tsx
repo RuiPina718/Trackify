@@ -131,39 +131,51 @@ export default function AuthScreens() {
             animate={{ opacity: 1, x: 0 }}
             className="flex items-center gap-2 mb-12"
           >
-            <div className="w-10 h-10 bg-accent rounded-xl flex items-center justify-center shadow-lg shadow-accent/20">
-              <span className="text-white font-black text-xl">T</span>
+            <div className="relative w-12 h-12">
+              <svg 
+                viewBox="0 0 1024 1024" 
+                fill="none" 
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-full h-full drop-shadow-xl"
+              >
+                <path d="M512 0C301.6 0 131 170.6 131 381c0 286.2 381 643 381 643s381-356.8 381-643C893 170.6 722.4 0 512 0z" fill="url(#paint0_linear_logo_auth)"/>
+                <path d="M380 340H644V420H552V520C552 520 552 570 512 570C472 570 472 520 472 520V420H380V340Z" fill="white" fillOpacity="0.9"/>
+                <defs>
+                  <linearGradient id="paint0_linear_logo_auth" x1="512" y1="0" x2="512" y2="1024" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#6366f1"/>
+                    <stop offset="1" stopColor="#8b5cf6"/>
+                  </linearGradient>
+                </defs>
+              </svg>
             </div>
-            <h1 className="text-2xl font-black tracking-tighter text-text-main uppercase">Trackify</h1>
+            <h1 className="text-4xl font-black tracking-tight text-text-main font-display lowercase">trackify.</h1>
           </motion.div>
 
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="max-w-xl"
+            className="max-w-2xl"
           >
-            <h2 className="text-6xl font-black text-text-main tracking-tighter leading-[0.95] mb-8">
-              Toma o controlo <br /> das tuas <span className="text-accent italic">subscrições.</span>
+            <h2 className="text-[140px] font-black text-text-main tracking-[-0.04em] leading-[0.8] mb-12 font-display uppercase">
+              DOMINA <br />
+              CUSTOS <br />
+              <span className="text-accent italic font-serif lowercase tracking-tight">recorrentes.</span>
             </h2>
-            <p className="text-lg text-text-muted font-medium leading-relaxed mb-12">
-              Centraliza os teus gastos recorrentes, evita cobranças surpresa e descobre onde podes poupar dinheiro todos os meses.
+            <p className="text-xl text-text-muted font-medium leading-relaxed mb-16 max-w-lg">
+              Centraliza os teus gastos, elimina o ruído e descobre onde podes poupar dinheiro todos os meses.
             </p>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-card/50 backdrop-blur-sm border border-border-dim p-6 rounded-[2rem] group hover:border-accent transition-all">
-                <div className="w-10 h-10 bg-red-500/10 rounded-xl flex items-center justify-center text-red-500 mb-4 group-hover:scale-110 transition-transform">
-                  <AlertCircle size={20} />
-                </div>
-                <h4 className="text-sm font-black text-text-main mb-1">Alertas Inteligentes</h4>
-                <p className="text-[10px] text-text-muted font-bold leading-relaxed uppercase tracking-wider">Notificações antes de cada renovação.</p>
+            <div className="grid grid-cols-2 gap-8">
+              <div className="group">
+                <p className="micro-label mb-3">01 / Inteligência</p>
+                <h4 className="text-lg font-bold text-text-main mb-2">Alertas Preditivos</h4>
+                <p className="text-sm text-text-muted leading-relaxed font-medium">Sabe exatamente quando e quanto vais pagar antes de acontecer.</p>
               </div>
-              <div className="bg-card/50 backdrop-blur-sm border border-border-dim p-6 rounded-[32px] group hover:border-accent transition-all">
-                <div className="w-10 h-10 bg-green-500/10 rounded-xl flex items-center justify-center text-green-500 mb-4 group-hover:scale-110 transition-transform">
-                  <Mail size={20} />
-                </div>
-                <h4 className="text-sm font-black text-text-main mb-1">Extrato de Poupança</h4>
-                <p className="text-[10px] text-text-muted font-bold leading-relaxed uppercase tracking-wider">Descobre serviços que já não utilizas.</p>
+              <div className="group">
+                <p className="micro-label mb-3">02 / Estratégia</p>
+                <h4 className="text-lg font-bold text-text-main mb-2">Poupança Ativa</h4>
+                <p className="text-sm text-text-muted leading-relaxed font-medium">Identifica serviços redundantes e otimiza o teu orçamento.</p>
               </div>
             </div>
           </motion.div>

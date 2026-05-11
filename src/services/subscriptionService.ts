@@ -69,28 +69,66 @@ export const createSubscription = async (data: Omit<Subscription, 'id' | 'create
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
+    
+    // Trigger background calendar sync
+    triggerCalendarSync(data.userId, docRef.id).catch(console.error);
+    
     return docRef.id;
   } catch (error) {
     handleFirestoreError(error, OperationType.CREATE, COLLECTION_NAME);
   }
 };
 
-export const updateSubscription = async (id: string, data: Partial<Omit<Subscription, 'id' | 'userId' | 'createdAt' | 'updatedAt'>>) => {
+export const updateSubscription = async (id: string, userId: string, data: Partial<Omit<Subscription, 'id' | 'userId' | 'createdAt' | 'updatedAt'>>) => {
   try {
     const docRef = doc(db, COLLECTION_NAME, id);
     await updateDoc(docRef, {
       ...cleanSubscriptionData(data),
       updatedAt: serverTimestamp(),
     });
+    
+    // Trigger background calendar sync
+    triggerCalendarSync(userId, id).catch(console.error);
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, `${COLLECTION_NAME}/${id}`);
   }
 };
 
-export const deleteSubscription = async (id: string) => {
+const triggerCalendarSync = async (userId: string, subscriptionId: string) => {
+  try {
+    const response = await fetch('/api/calendar/sync-subscription', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, subscriptionId }),
+    });
+    return response.ok;
+  } catch (error) {
+    console.error('Error triggering calendar sync:', error);
+    return false;
+  }
+};
+
+const triggerCalendarDelete = async (userId: string, subscriptionId: string) => {
+  try {
+    const response = await fetch('/api/calendar/delete-event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, subscriptionId }),
+    });
+    return response.ok;
+  } catch (error) {
+    console.error('Error triggering calendar delete:', error);
+    return false;
+  }
+};
+
+export const deleteSubscription = async (id: string, userId: string) => {
   try {
     const docRef = doc(db, COLLECTION_NAME, id);
     await deleteDoc(docRef);
+    
+    // Trigger background calendar event deletion
+    triggerCalendarDelete(userId, id).catch(console.error);
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, `${COLLECTION_NAME}/${id}`);
     throw error;

@@ -1,9 +1,18 @@
 import { GoogleGenAI, Type, FunctionDeclaration } from "@google/genai";
 import { createSubscription, getUserSubscriptions } from "./subscriptionService";
+import { Subscription } from "../types";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY || "",
 });
+
+export interface AIInsight {
+  type: 'warning' | 'info' | 'suggestion';
+  title: string;
+  description: string;
+  icon: string;
+  score?: number;
+}
 
 const addSubscriptionTool: FunctionDeclaration = {
   name: "addSubscription",
@@ -153,3 +162,69 @@ IMPORTANTE: Formata as tuas respostas usando Markdown para melhor legibilidade:
     throw error;
   }
 };
+
+export async function generateAIInsights(subscriptions: Subscription[], monthlyBudget?: number): Promise<AIInsight[]> {
+  if (subscriptions.length === 0) return [];
+
+  const subscriptionSummary = subscriptions.map(s => ({
+    name: s.name,
+    amount: s.amount,
+    currency: s.currency || 'EUR',
+    billingCycle: s.billingCycle,
+    category: s.category,
+    status: s.status
+  }));
+
+  const prompt = `
+    Analisa as subscrições do utilizador e gera 3 insights estratégicos únicos em Português de Portugal (PT-PT).
+    As subscrições são: ${JSON.stringify(subscriptionSummary)}
+    O orçamento mensal é: ${monthlyBudget || 'não definido'}
+    
+    Observa:
+    1. Duplicação ou redundância de serviços.
+    2. Oportunidades de poupança ao mudar para planos anuais.
+    3. Alertas de gastos desproporcionais por categoria.
+    4. Sugestões de otimização de orçamento.
+
+    Retorna um array de objetos JSON que respeite o seguinte esquema:
+    - title: Título curto (max 25 caracteres)
+    - description: Dica prática (max 100 caracteres)
+    - type: 'warning', 'info', ou 'suggestion'
+    - icon: Emote/Emoji relevante
+    - score: 0-100 (importância)
+
+    O tom deve ser profissional e focado em poupança.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              title: { type: Type.STRING },
+              description: { type: Type.STRING },
+              type: { type: Type.STRING, enum: ['warning', 'info', 'suggestion'] },
+              icon: { type: Type.STRING },
+              score: { type: Type.NUMBER }
+            },
+            required: ['title', 'description', 'type', 'icon']
+          }
+        }
+      }
+    });
+
+    const text = response.text;
+    if (!text) return [];
+    
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Erro ao gerar insights com AI:", error);
+    return [];
+  }
+}

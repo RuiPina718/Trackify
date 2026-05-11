@@ -67,7 +67,10 @@ export const deleteUserProfile = async (uid: string): Promise<void> => {
     await deleteAllUserSubscriptions(uid);
     // 2. Delete all custom categories
     await deleteAllUserCategories(uid);
-    // 3. Delete user profile document
+    // 3. Disconnect calendar integration
+    await triggerCalendarDisconnect(uid).catch(console.error);
+
+    // 4. Delete user profile document
     const docRef = doc(db, 'users', uid);
     await deleteDoc(docRef);
   } catch (error) {
@@ -121,4 +124,18 @@ export const subscribeToAllUsers = (callback: (users: UserProfile[]) => void, er
     console.error('Error in subscribeToAllUsers:', error);
     if (errorCallback) errorCallback(error);
   });
+};
+
+const triggerCalendarDisconnect = async (userId: string) => {
+  try {
+    const response = await fetch('/api/calendar/disconnect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId }),
+    });
+    return response.ok;
+  } catch (error) {
+    console.error('Error triggering calendar disconnect:', error);
+    return false;
+  }
 };

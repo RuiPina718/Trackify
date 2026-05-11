@@ -174,42 +174,77 @@ export default function Shell({ user }: ShellProps) {
               setActiveView('dashboard');
               setIsSidebarOpen(false);
             }}
-            className="text-xl font-extrabold tracking-tighter text-accent flex items-center gap-2 hover:opacity-80 transition-opacity active:scale-95"
+            className="text-2xl font-black tracking-tighter text-accent flex items-center gap-2 hover:opacity-80 transition-opacity active:scale-95 group"
           >
-            TRACKIFY
+            <div className="relative w-10 h-10 group-hover:rotate-12 transition-transform duration-500">
+              <svg 
+                viewBox="0 0 1024 1024" 
+                fill="none" 
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-full h-full drop-shadow-xl"
+              >
+                <path d="M512 0C301.6 0 131 170.6 131 381c0 286.2 381 643 381 643s381-356.8 381-643C893 170.6 722.4 0 512 0z" fill="url(#paint0_linear_logo)"/>
+                <path d="M380 340H644V420H552V520C552 520 552 570 512 570C472 570 472 520 472 520V420H380V340Z" fill="white" fillOpacity="0.9"/>
+                <path d="M512 0C301.6 0 131 170.6 131 381c0 286.2 381 643 381 643s381-356.8 381-643C893 170.6 722.4 0 512 0z" fill="url(#paint1_radial_logo)" style={{ mixBlendMode: 'overlay' }}/>
+                <defs>
+                  <linearGradient id="paint0_linear_logo" x1="512" y1="0" x2="512" y2="1024" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#6366f1"/>
+                    <stop offset="1" stopColor="#8b5cf6"/>
+                  </linearGradient>
+                  <radialGradient id="paint1_radial_logo" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(340 250) rotate(45) scale(500)">
+                    <stop stopColor="white" stopOpacity="0.5"/>
+                    <stop offset="1" stopColor="white" stopOpacity="0"/>
+                  </radialGradient>
+                </defs>
+              </svg>
+            </div>
+            <span className="font-display lowercase tracking-tight text-3xl">trackify.</span>
           </button>
           <button className="lg:hidden p-2 text-text-muted hover:text-accent" onClick={() => setIsSidebarOpen(false)}>
             <Plus className="rotate-45" size={24} />
           </button>
         </div>
 
-        <nav className="flex-1 px-4 py-4 space-y-1.5 overflow-y-auto">
+        <nav className="flex-1 px-4 py-8 space-y-2 overflow-y-auto">
           {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => handleNavigate(item.id as ViewType)}
               className={cn(
-                "w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all group",
+                "w-full flex items-center gap-4 px-5 py-3.5 rounded-2xl text-[13px] font-bold tracking-tight transition-all group relative",
                 activeView === item.id 
-                  ? "bg-accent text-white shadow-xl shadow-accent/20" 
+                  ? "bg-accent/10 text-accent border border-accent/20" 
                   : "text-text-muted hover:text-text-main hover:bg-bg border border-transparent hover:border-border-dim"
               )}
             >
-              <item.icon size={18} className={cn(
-                "transition-transform group-hover:scale-110",
-                activeView === item.id ? "text-white" : "text-text-muted group-hover:text-text-main"
+              <item.icon size={20} className={cn(
+                "transition-all duration-300",
+                activeView === item.id ? "text-accent scale-110" : "text-text-muted/60 group-hover:text-text-main group-hover:scale-110"
               )} />
               {item.label}
+              {activeView === item.id && (
+                <motion.div 
+                  layoutId="active-indicator"
+                  className="absolute left-0 w-1 h-4 bg-accent rounded-full"
+                />
+              )}
             </button>
           ))}
         </nav>
 
         <div className="p-4 mt-auto">
-          <div className="bg-bg border border-border-dim rounded-3xl p-6 mb-4 hidden sm:block">
-            <p className="text-xs font-black text-text-muted uppercase tracking-[0.2em] mb-1">Upgrade</p>
-            <p className="text-[11px] text-text-muted mb-3 leading-relaxed font-medium">Obtenha insights ilimitados e notificações push.</p>
-            <button className="w-full py-2.5 bg-card border border-border-dim text-[11px] font-black rounded-xl hover:border-accent hover:text-accent transition-all uppercase tracking-widest">
-              SABER MAIS
+          <div className="bg-accent/5 border border-accent/10 rounded-3xl p-6 mb-4 hidden sm:block relative overflow-hidden group">
+            <div className="absolute -right-4 -top-4 w-20 h-20 bg-accent/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
+            <div className="flex items-center justify-between mb-2">
+              <p className="micro-label">Upgrade Pro</p>
+              <span className="text-[8px] font-black bg-accent/20 text-accent px-2 py-0.5 rounded-full uppercase tracking-widest animate-pulse">Brevemente</span>
+            </div>
+            <p className="text-[11px] text-text-muted mb-4 leading-relaxed font-semibold">Desbloqueia insights profundos e controlo absoluto.</p>
+            <button 
+              disabled
+              className="w-full py-3 bg-accent/50 text-white/50 text-[10px] font-black rounded-xl cursor-not-allowed uppercase tracking-[0.2em]"
+            >
+              INDISPONÍVEL
             </button>
           </div>
 

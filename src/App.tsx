@@ -75,7 +75,7 @@ export default function App() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-bg">
         <Loader2 className="w-10 h-10 text-accent animate-spin mb-6" />
-        <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.3em]">SubManager Pro is loading</p>
+        <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.3em]">Trackify is loading</p>
       </div>
     );
   }

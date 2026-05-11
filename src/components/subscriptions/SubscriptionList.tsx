@@ -91,7 +91,7 @@ export default function SubscriptionList({ userId, onEdit, currency = 'EUR' }: S
     setIsDeleting(true);
     try {
       console.log('A eliminar subscrição no Firestore:', subToDelete.id);
-      await deleteSubscription(subToDelete.id);
+      await deleteSubscription(subToDelete.id, userId);
       console.log('Subscrição eliminada com sucesso');
       setIsDeleteModalOpen(false);
       setSubToDelete(null);
@@ -105,7 +105,7 @@ export default function SubscriptionList({ userId, onEdit, currency = 'EUR' }: S
 
   const toggleStatus = async (sub: Subscription) => {
     const nextStatus = sub.status === 'active' ? 'cancelled' : 'active';
-    await updateSubscription(sub.id, { status: nextStatus });
+    await updateSubscription(sub.id, userId, { status: nextStatus });
   };
 
   if (loading) {
@@ -247,92 +247,98 @@ export default function SubscriptionList({ userId, onEdit, currency = 'EUR' }: S
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ delay: idx * 0.05 }}
               className={cn(
-                "group relative bg-card border border-border-dim rounded-[2.5rem] sm:rounded-[3rem] p-6 sm:p-10 hover:border-accent transition-all hover:shadow-2xl hover:shadow-accent/5",
-                sub.status === 'cancelled' && "opacity-60 grayscale-[0.5]"
+                "group relative bg-card border border-border-dim rounded-[3rem] p-8 sm:p-12 hover:border-accent transition-all duration-500 hover:shadow-premium overflow-hidden",
+                sub.status === 'cancelled' && "opacity-60 grayscale"
               )}
             >
-              <div className="flex justify-between items-start mb-6 sm:mb-10">
-                <div className="flex items-center gap-4 sm:gap-5">
-                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl sm:rounded-[2rem] bg-accent/5 border border-accent/10 flex items-center justify-center text-accent shadow-inner">
+              {/* Background accent glow */}
+              <div className="absolute -right-20 -top-20 w-40 h-40 bg-accent/5 rounded-full blur-3xl group-hover:bg-accent/10 transition-colors duration-500" />
+
+              <div className="flex justify-between items-start mb-10 relative z-10">
+                <div className="flex items-center gap-6">
+                  <div className="w-16 h-16 rounded-[2rem] bg-accent/5 border border-accent/10 flex items-center justify-center text-accent shadow-inner group-hover:bg-accent group-hover:text-white transition-all duration-300">
                     <IconRenderer 
                       name={sub.icon || categories.find(c => c.name === sub.category)?.icon} 
-                      size={24} 
-                      className="group-hover:scale-110 transition-transform" 
-                      fallback={<span className="text-2xl sm:text-3xl font-black">{sub.name.charAt(0)}</span>} 
+                      size={28} 
+                      className="transition-transform duration-500 group-hover:scale-110" 
+                      fallback={<span className="text-3xl font-black">{sub.name.charAt(0)}</span>} 
                     />
                   </div>
-                  <div className="min-w-0">
-                    <h3 className="text-xl sm:text-2xl font-black text-text-main tracking-tighter leading-none truncate">{sub.name}</h3>
-                    <div className="flex items-center gap-2 mt-1.5 sm:mt-2">
+                  <div>
+                    <h3 className="text-2xl font-black text-text-main tracking-tight leading-tight mb-2 group-hover:text-accent transition-colors">{sub.name}</h3>
+                    <div className="flex items-center gap-2">
                       <div 
                         className="w-2.5 h-2.5 rounded-full" 
                         style={{ backgroundColor: categories.find(c => c.name === sub.category)?.color || '#94a3b8' }}
                       />
-                      <p className="text-[10px] sm:text-[11px] font-black text-text-muted uppercase tracking-[0.2em] truncate">{sub.category}</p>
+                      <p className="micro-label opacity-70">{sub.category}</p>
                     </div>
                   </div>
                 </div>
-                <div className="flex bg-bg/80 backdrop-blur-sm rounded-xl border border-border-dim/50 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all sm:transform sm:translate-x-2 sm:group-hover:translate-x-0 z-30 shadow-lg">
-                  <button 
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); onEdit(sub); }}
-                    className="p-3 sm:p-3.5 text-text-muted hover:text-accent transition-colors relative z-40"
-                    title="Editar"
-                  >
-                    <Edit2 size={20} className="w-5 h-5" />
-                  </button>
-                  <button 
-                    type="button"
-                    onClick={(e) => handleDeleteClick(e, sub)}
-                    className="p-3 sm:p-3.5 text-text-muted hover:text-red-500 transition-all relative z-40"
-                    title="Remover"
-                  >
-                    <Trash2 size={20} className="w-5 h-5" />
-                  </button>
-                </div>
               </div>
 
-              <div className="flex items-end justify-between mb-8 sm:mb-10">
-                <div>
-                  <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.3em] mb-1">Investimento</p>
-                  <p className="text-2xl sm:text-3xl font-black text-text-main tracking-tight tabular-nums">
-                    {formatCurrency(sub.amount, sub.currency || currency)}
-                    <span className="text-[10px] sm:text-xs text-text-muted ml-1.5 sm:ml-2 font-black uppercase tracking-widest opacity-50">/{sub.billingCycle === 'monthly' ? 'mês' : 'ano'}</span>
-                  </p>
+              <div className="space-y-8 relative z-10">
+                <div className="flex items-end justify-between">
+                  <div>
+                    <p className="micro-label mb-3">Valor / Período</p>
+                    <p className="text-4xl font-black text-text-main tracking-tighter tabular-nums font-display">
+                      {formatCurrency(sub.amount, sub.currency || currency)}
+                      <span className="text-xs text-text-muted ml-2 font-black uppercase tracking-widest opacity-40">/{sub.billingCycle === 'monthly' ? 'mês' : 'ano'}</span>
+                    </p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.3em] mb-1">Renovação</p>
-                  <p className="text-xs sm:text-sm font-black text-accent uppercase tracking-widest text-right">
-                    Dia {sub.billingDay}
-                    {(sub.billingCycle === 'yearly' || sub.billingCycle === 'annual') && sub.billingMonth && (
-                      <span className="block text-[9px] font-bold opacity-70">
-                        {getMonthName(sub.billingMonth).toUpperCase()}
-                      </span>
+
+                <div className="grid grid-cols-2 gap-4 py-6 border-y border-border-dim/50">
+                  <div>
+                    <p className="micro-label mb-1">Próxima Cobrança</p>
+                    <p className="text-sm font-bold text-text-main uppercase tracking-tight">
+                      Dia {sub.billingDay}
+                      {(sub.billingCycle === 'yearly' || sub.billingCycle === 'annual') && sub.billingMonth && (
+                        <span className="text-accent ml-1.5">
+                          {getMonthName(sub.billingMonth).toUpperCase()}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="micro-label mb-1">Estado</p>
+                    <div className="flex items-center justify-end gap-2">
+                      <div className={cn(
+                        "w-2 h-2 rounded-full animate-pulse",
+                        sub.status === 'active' ? "bg-health" : "bg-text-muted/30"
+                      )} />
+                      <p className="text-[10px] font-black uppercase tracking-widest text-text-main">
+                        {sub.status === 'active' ? 'Ativo' : 'Pausado'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button 
+                    onClick={() => onEdit(sub)}
+                    className="flex-1 py-3.5 bg-bg border border-border-dim rounded-2xl text-[10px] font-black text-text-main uppercase tracking-[0.2em] hover:border-accent hover:text-accent transition-all active:scale-[0.98]"
+                  >
+                    Editar
+                  </button>
+                  <button 
+                    onClick={() => toggleStatus(sub)}
+                    className={cn(
+                      "flex-1 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all active:scale-[0.98] border",
+                      sub.status === 'active' 
+                        ? "bg-red-500/5 border-red-500/10 text-red-500 hover:bg-red-500 hover:text-white" 
+                        : "bg-accent text-white border-accent hover:bg-accent/90"
                     )}
-                  </p>
+                  >
+                    {sub.status === 'active' ? 'Pausar' : 'Ativar'}
+                  </button>
+                  <button 
+                    onClick={(e) => handleDeleteClick(e, sub)}
+                    className="p-3.5 bg-bg border border-border-dim rounded-2xl text-text-muted hover:text-red-500 hover:border-red-500 transition-all active:scale-[0.98]"
+                  >
+                    <Trash2 size={18} />
+                  </button>
                 </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-5 sm:pt-6 border-t border-border-dim/50">
-                <div className="flex items-center gap-2">
-                  <div className={cn(
-                    "w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full",
-                    sub.status === 'active' ? "bg-health shadow-[0_0_12px_rgba(34,197,94,0.4)]" : "bg-text-muted/30"
-                  )}></div>
-                  <span className="text-[10px] font-black text-text-muted uppercase tracking-[0.25em]">
-                    {sub.status === 'active' ? 'Ativa' : 'Pausada'}
-                  </span>
-                </div>
-                
-                <button
-                  onClick={() => toggleStatus(sub)}
-                  className={cn(
-                    "text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] py-2 sm:py-2.5 px-4 sm:px-6 rounded-xl sm:rounded-2xl border transition-all active:scale-95",
-                    sub.status === 'active' ? "bg-bg border-border-dim text-text-muted hover:border-red-500 hover:text-red-500" : "bg-accent text-white border-accent hover:opacity-90"
-                  )}
-                >
-                  {sub.status === 'active' ? 'Cancelar' : 'Reativar'}
-                </button>
               </div>
             </motion.div>
           )) : (

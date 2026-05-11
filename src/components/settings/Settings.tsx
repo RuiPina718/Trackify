@@ -1,5 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, sendPasswordResetEmail } from 'firebase/auth';
+import { 
+  User, 
+  sendPasswordResetEmail, 
+  reauthenticateWithCredential, 
+  EmailAuthProvider, 
+  updatePassword 
+} from 'firebase/auth';
 import { UserProfile, NotificationPreferences, Category, PREDEFINED_CATEGORIES } from '../../types';
 import { getUserProfile, updateUserProfile, createUserProfile, deleteUserProfile } from '../../services/userService';
 import { 
@@ -42,7 +48,11 @@ import {
   Camera,
   Search,
   Upload,
-  ImageIcon
+  ImageIcon,
+  Calendar,
+  RefreshCw,
+  Link,
+  ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
@@ -61,7 +71,7 @@ interface SettingsProps {
   initialTab?: SettingsTab;
 }
 
-type SettingsTab = 'account' | 'preferences' | 'categories' | 'billing' | 'notifications' | 'security';
+type SettingsTab = 'account' | 'preferences' | 'categories' | 'billing' | 'notifications' | 'security' | 'calendar';
 
 const CURRENCIES = [
   { code: 'EUR', symbol: '€', name: 'Euro' },
@@ -127,6 +137,18 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
 
+  // Calendar Sync State
+  const [showCalendarDisconnectModal, setShowCalendarDisconnectModal] = useState(false);
+  const [calendarIntegration, setCalendarIntegration] = useState<{ status: string, lastSyncAt: string } | null>(null);
+  const [calendarLoading, setCalendarLoading] = useState(false);
+
+  // Password Change State
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -151,6 +173,35 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
       }
     };
     fetchProfile();
+  }, [user]);
+
+  useEffect(() => {
+    const fetchCalendarIntegration = async () => {
+      try {
+        const docSnap = await getDocs(query(collection(db, 'calendar_integrations'), where('userId', '==', user.uid)));
+        if (!docSnap.empty) {
+          const data = docSnap.docs[0].data();
+          setCalendarIntegration({
+            status: data.status,
+            lastSyncAt: data.lastSyncAt?.toDate?.()?.toISOString() || data.lastSyncAt || ''
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching calendar integration:', error);
+      }
+    };
+    fetchCalendarIntegration();
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'CALENDAR_SYNC_SUCCESS') {
+        fetchCalendarIntegration();
+        handleSyncAll();
+        setMessage({ type: 'success', text: 'Google Calendar ligado com sucesso!' });
+        setTimeout(() => setMessage(null), 3000);
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
   }, [user]);
 
   const handleSave = async (e?: React.FormEvent) => {
@@ -238,6 +289,47 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
     }
   };
 
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      setMessage({ type: 'error', text: 'As novas palavras-passe não coincidem.' });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setMessage({ type: 'error', text: 'A nova palavra-passe deve ter pelo menos 6 caracteres.' });
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      // Re-authenticate user
+      const credential = EmailAuthProvider.credential(user.email || '', oldPassword);
+      await reauthenticateWithCredential(user, credential);
+      
+      // Update password
+      await updatePassword(user, newPassword);
+      
+      setMessage({ type: 'success', text: 'Palavra-passe alterada com sucesso!' });
+      setIsChangingPassword(false);
+      setOldPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => setMessage(null), 3000);
+    } catch (error: any) {
+      console.error('Error updating password:', error);
+      let errorMsg = 'Erro ao alterar palavra-passe.';
+      if (error.code === 'auth/wrong-password') {
+        errorMsg = 'A palavra-passe antiga está incorreta.';
+      } else if (error.code === 'auth/weak-password') {
+        errorMsg = 'A nova palavra-passe é demasiado fraca.';
+      }
+      setMessage({ type: 'error', text: errorMsg });
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
   const handlePasswordReset = async () => {
     try {
       await sendPasswordResetEmail(auth, user.email || '');
@@ -245,6 +337,86 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
       setTimeout(() => setMessage(null), 3000);
     } catch (error) {
       setMessage({ type: 'error', text: 'Erro ao enviar email de recuperação.' });
+    }
+  };
+
+  const handleConnectCalendar = async () => {
+    setCalendarLoading(true);
+    try {
+      const response = await fetch(`/api/auth/google/url?userId=${user.uid}`);
+      if (!response.ok) throw new Error('Falha ao obter URL de autenticação');
+      const { url } = await response.json();
+      
+      const width = 600;
+      const height = 700;
+      const left = window.screenX + (window.outerWidth - width) / 2;
+      const top = window.screenY + (window.outerHeight - height) / 2;
+      
+      window.open(
+        url,
+        'google_oauth_popup',
+        `width=${width},height=${height},left=${left},top=${top}`
+      );
+    } catch (error) {
+      console.error('Error connecting calendar:', error);
+      setMessage({ type: 'error', text: 'Erro ao ligar ao Google Calendar.' });
+    } finally {
+      setCalendarLoading(false);
+    }
+  };
+
+  const handleDisconnectCalendar = async () => {
+    setCalendarLoading(true);
+    try {
+      const response = await fetch('/api/calendar/disconnect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.uid }),
+      });
+      
+      if (!response.ok) throw new Error('Falha ao desligar o calendário');
+      
+      setCalendarIntegration(null);
+      setMessage({ type: 'success', text: 'Google Calendar desligado com sucesso.' });
+      setShowCalendarDisconnectModal(false);
+      setTimeout(() => setMessage(null), 3000);
+    } catch (error) {
+      console.error('Error disconnecting calendar:', error);
+      setMessage({ type: 'error', text: 'Erro ao desligar o calendário.' });
+    } finally {
+      setCalendarLoading(false);
+    }
+  };
+
+  const handleSyncAll = async () => {
+    setCalendarLoading(true);
+    try {
+      const response = await fetch('/api/calendar/sync-all', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.uid }),
+      });
+      
+      if (!response.ok) throw new Error('Falha ao sincronizar');
+      
+      const { count } = await response.json();
+      setMessage({ type: 'success', text: `${count} subscrições sincronizadas com sucesso!` });
+      setTimeout(() => setMessage(null), 3000);
+      
+      // Refresh integration status
+      const docSnap = await getDocs(query(collection(db, 'calendar_integrations'), where('userId', '==', user.uid)));
+      if (!docSnap.empty) {
+        const data = docSnap.docs[0].data();
+        setCalendarIntegration({
+          status: data.status,
+          lastSyncAt: data.lastSyncAt?.toDate?.()?.toISOString() || data.lastSyncAt || ''
+        });
+      }
+    } catch (error) {
+      console.error('Error syncing all:', error);
+      setMessage({ type: 'error', text: 'Erro ao sincronizar subscrições.' });
+    } finally {
+      setCalendarLoading(false);
     }
   };
 
@@ -342,6 +514,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
 
   const tabs = [
     { id: 'account', label: 'Conta', icon: UserIcon },
+    { id: 'calendar', label: 'Sincronização', icon: Calendar },
     { id: 'preferences', label: 'Preferências', icon: SettingsIcon },
     { id: 'categories', label: 'Categorias', icon: LayoutGrid },
     { id: 'billing', label: 'Faturação', icon: CreditCard },
@@ -672,6 +845,121 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                 </section>
               )}
 
+              {activeTab === 'calendar' && (
+                <section className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="flex items-center gap-2 pb-2 border-b border-border-dim">
+                    <Calendar size={18} className="text-accent" />
+                    <h3 className="text-sm font-black text-text-main uppercase tracking-widest">CalendarSync</h3>
+                  </div>
+
+                  <div className="p-8 bg-bg border border-border-dim rounded-[2.5rem] relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-8 text-accent/5 -rotate-12 group-hover:rotate-0 transition-all duration-500">
+                      <Calendar size={120} />
+                    </div>
+
+                    <div className="relative z-10 space-y-6">
+                      <div className="space-y-2">
+                        <h4 className="text-xl font-black text-text-main tracking-tight">Sincroniza com Google Calendar</h4>
+                        <p className="text-xs text-text-muted font-medium leading-relaxed max-w-md">
+                          Adiciona automaticamente os teus pagamentos recorrentes ao teu calendário pessoal. 
+                          Nunca mais te esqueças de uma renovação.
+                        </p>
+                      </div>
+
+                      <div className="flex flex-col gap-4">
+                        <div className="flex items-center gap-4 p-4 bg-card border border-border-dim rounded-2xl">
+                          <div className={cn(
+                            "w-12 h-12 rounded-xl flex items-center justify-center transition-all",
+                            calendarIntegration?.status === 'connected' ? "bg-green-500/10 text-green-500" : "bg-accent/10 text-accent"
+                          )}>
+                             {calendarIntegration?.status === 'connected' ? <CheckCircle2 size={24} /> : <Link size={24} />}
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs font-black text-text-main uppercase tracking-widest">Estado da Ligação</p>
+                            <p className={cn(
+                              "text-[10px] font-bold uppercase tracking-wider",
+                              calendarIntegration?.status === 'connected' ? "text-green-500" : "text-text-muted"
+                            )}>
+                              {calendarIntegration?.status === 'connected' ? 'Sincronizado com Google' : 'Não Ligado'}
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={handleConnectCalendar}
+                              disabled={calendarLoading}
+                              className={cn(
+                                "px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                                calendarIntegration?.status === 'connected' 
+                                  ? "bg-bg border border-border-dim text-text-muted hover:border-accent hover:text-accent" 
+                                  : "bg-accent text-white shadow-lg shadow-accent/20 hover:bg-accent/90"
+                              )}
+                            >
+                              {calendarLoading ? (
+                                <RefreshCw size={14} className="animate-spin" />
+                              ) : (
+                                calendarIntegration?.status === 'connected' ? 'Reconectar' : 'Ligar Agora'
+                              )}
+                            </button>
+                            {calendarIntegration?.status === 'connected' && (
+                              <button
+                                onClick={() => setShowCalendarDisconnectModal(true)}
+                                disabled={calendarLoading}
+                                className="px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500 hover:text-white"
+                              >
+                                {calendarLoading ? <RefreshCw size={14} className="animate-spin" /> : 'Desligar'}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {calendarIntegration?.status === 'connected' && (
+                          <div className="flex flex-col gap-4">
+                            <div className="p-4 bg-accent/5 border border-accent/20 rounded-2xl flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="p-2 bg-accent/10 text-accent rounded-lg">
+                                  <RefreshCw size={16} className={calendarLoading ? "animate-spin" : ""} />
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-black text-text-main uppercase tracking-widest">Sincronização Automática Ativa</p>
+                                  <p className="text-[10px] text-text-muted font-bold">
+                                    Última sincronização: {calendarIntegration.lastSyncAt ? new Date(calendarIntegration.lastSyncAt).toLocaleString() : 'Nunca'}
+                                  </p>
+                                </div>
+                              </div>
+                              <button
+                                onClick={handleSyncAll}
+                                disabled={calendarLoading}
+                                className="px-4 py-2 bg-accent/10 hover:bg-accent/20 text-accent text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center gap-2"
+                              >
+                                {calendarLoading ? (
+                                  <RefreshCw size={12} className="animate-spin" />
+                                ) : (
+                                  <>
+                                    <RefreshCw size={12} />
+                                    Sincronizar Agora
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="pt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="flex gap-3">
+                          <div className="w-1.5 h-1.5 rounded-full bg-accent mt-1.5 shrink-0" />
+                          <p className="text-[10px] text-text-muted font-medium">Os eventos são criados como lembretes de dia inteiro.</p>
+                        </div>
+                        <div className="flex gap-3">
+                          <div className="w-1.5 h-1.5 rounded-full bg-accent mt-1.5 shrink-0" />
+                          <p className="text-[10px] text-text-muted font-medium">Atualiza automaticamente se alterares uma data.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              )}
+
               {activeTab === 'preferences' && (
                 <section className="space-y-6">
                   <div className="flex items-center gap-2 pb-2 border-b border-border-dim">
@@ -957,22 +1245,102 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                   </div>
 
                   <div className="space-y-4">
-                    <div className="p-6 bg-bg border border-border-dim rounded-2xl flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="p-2 bg-accent/10 rounded-xl text-accent">
-                          <Key size={18} />
+                    <div className="p-6 bg-bg border border-border-dim rounded-2xl">
+                      <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-4">
+                          <div className="p-2 bg-accent/10 rounded-xl text-accent">
+                            <Key size={18} />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-text-main">Palavra-passe</p>
+                            <p className="text-[10px] text-text-muted">Actualiza a tua password regularmente</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-xs font-bold text-text-main">Palavra-passe</p>
-                          <p className="text-[10px] text-text-muted">Actualiza a tua password regularmente</p>
-                        </div>
+                        {!isChangingPassword && (
+                          <button 
+                            onClick={() => setIsChangingPassword(true)}
+                            className="px-4 py-2 bg-accent text-white rounded-xl text-[10px] font-black hover:bg-accent/90 transition-all uppercase tracking-widest"
+                          >
+                            Alterar
+                          </button>
+                        )}
                       </div>
-                      <button 
-                        onClick={handlePasswordReset}
-                        className="px-4 py-2 bg-accent text-white rounded-xl text-[10px] font-black hover:bg-accent/90 transition-all uppercase tracking-widest"
-                      >
-                        Alterar
-                      </button>
+
+                      <AnimatePresence>
+                        {isChangingPassword && (
+                          <motion.form
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            onSubmit={handleUpdatePassword}
+                            className="space-y-4 overflow-hidden pt-4 border-t border-border-dim/50"
+                          >
+                            <div className="grid grid-cols-1 gap-4">
+                              <div>
+                                <label className="block text-[10px] font-bold text-text-muted uppercase tracking-widest mb-1.5 ml-1">Palavra-passe Atual</label>
+                                <input
+                                  type="password"
+                                  required
+                                  value={oldPassword}
+                                  onChange={(e) => setOldPassword(e.target.value)}
+                                  className="w-full px-5 py-3 bg-card border border-border-dim rounded-xl text-xs text-text-main focus:ring-2 focus:ring-accent outline-none"
+                                  placeholder="••••••••"
+                                />
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                  <label className="block text-[10px] font-bold text-text-muted uppercase tracking-widest mb-1.5 ml-1">Nova Palavra-passe</label>
+                                  <input
+                                    type="password"
+                                    required
+                                    value={newPassword}
+                                    onChange={(e) => setNewPassword(e.target.value)}
+                                    className="w-full px-5 py-3 bg-card border border-border-dim rounded-xl text-xs text-text-main focus:ring-2 focus:ring-accent outline-none"
+                                    placeholder="••••••••"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[10px] font-bold text-text-muted uppercase tracking-widest mb-1.5 ml-1">Confirmar Nova Palavra-passe</label>
+                                  <input
+                                    type="password"
+                                    required
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    className="w-full px-5 py-3 bg-card border border-border-dim rounded-xl text-xs text-text-main focus:ring-2 focus:ring-accent outline-none"
+                                    placeholder="••••••••"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex justify-end gap-3 pt-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsChangingPassword(false);
+                                  setOldPassword('');
+                                  setNewPassword('');
+                                  setConfirmPassword('');
+                                }}
+                                className="px-6 py-2 bg-bg border border-border-dim text-text-muted rounded-xl text-[10px] font-black hover:border-text-muted transition-all uppercase tracking-widest"
+                              >
+                                Cancelar
+                              </button>
+                              <button
+                                type="submit"
+                                disabled={passwordLoading}
+                                className="px-6 py-2 bg-accent text-white rounded-xl text-[10px] font-black hover:bg-accent/90 transition-all uppercase tracking-widest flex items-center gap-2"
+                              >
+                                {passwordLoading ? (
+                                  <RefreshCw size={12} className="animate-spin" />
+                                ) : (
+                                  <Check size={12} />
+                                )}
+                                Confirmar Alteração
+                              </button>
+                            </div>
+                          </motion.form>
+                        )}
+                      </AnimatePresence>
                     </div>
 
                     <div className="pt-10 border-t border-border-dim">
@@ -1193,6 +1561,15 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
         title="Eliminar Categoria"
         itemName={catToDelete?.name || ''}
         loading={isDeletingCat}
+      />
+
+      <DeleteConfirmationModal
+        isOpen={showCalendarDisconnectModal}
+        onClose={() => setShowCalendarDisconnectModal(false)}
+        onConfirm={handleDisconnectCalendar}
+        title="Desligar Google Calendar"
+        itemName="a ligação ao Google Calendar"
+        loading={calendarLoading}
       />
 
       <CategoryModal

@@ -52,6 +52,32 @@
         "color": { "type": "string" }
       },
       "required": ["name"]
+    },
+    "CalendarIntegration": {
+      "title": "Calendar Integration",
+      "description": "Google Calendar OAuth integration data.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "email": { "type": "string" },
+        "refreshToken": { "type": "string" },
+        "status": { "type": "string", "enum": ["connected", "disconnected", "error"] },
+        "lastSyncAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "refreshToken", "status", "createdAt"]
+    },
+    "CalendarEvent": {
+      "title": "Calendar Event",
+      "description": "Mapping between a subscription and a Google Calendar event.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "subscriptionId": { "type": "string" },
+        "googleEventId": { "type": "string" },
+        "lastSyncedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "subscriptionId", "googleEventId"]
     }
   },
   "firestore": {
@@ -66,6 +92,14 @@
     "/categories/{categoryId}": {
       "schema": "Category",
       "description": "Custom categories per user"
+    },
+    "/calendar_integrations/{userId}": {
+      "schema": "CalendarIntegration",
+      "description": "User Google Calendar integration settings"
+    },
+    "/calendar_events/{eventId}": {
+      "schema": "CalendarEvent",
+      "description": "Subscription to Google Event mappings"
     }
   }
 }

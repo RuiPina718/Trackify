@@ -108,7 +108,7 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
       }
 
       if (editSubscription) {
-        await updateSubscription(editSubscription.id, subscriptionData);
+        await updateSubscription(editSubscription.id, userId, subscriptionData);
       } else {
         await createSubscription({
           ...subscriptionData,
