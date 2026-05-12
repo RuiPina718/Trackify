@@ -85,7 +85,7 @@ export default function App() {
 
   // Maintenance Mode Logic
   if (appConfig.maintenanceMode) {
-    const isAdmin = userProfile?.isAdmin;
+    const isAdmin = !!(userProfile?.isAdmin || user?.email?.toLowerCase().trim() === 'ruialexandrepina@gmail.com');
     const canEnter = isAdmin && appConfig.allowAdminsDuringMaintenance;
 
     // Automatic bypass for admins
@@ -122,6 +122,6 @@ export default function App() {
     return <AuthScreens />;
   }
 
-  return <Shell user={user} />;
+  return <Shell user={user} userProfile={userProfile} />;
 }
 

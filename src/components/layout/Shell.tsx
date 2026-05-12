@@ -35,29 +35,26 @@ import { IconRenderer } from '../ui/IconRenderer';
 
 interface ShellProps {
   user: User;
+  userProfile: UserProfile | null;
 }
 
 export type ViewType = 'dashboard' | 'subscriptions' | 'calendar' | 'analytics' | 'settings' | 'admin';
 
-export default function Shell({ user }: ShellProps) {
+export default function Shell({ user, userProfile }: ShellProps) {
   const [activeView, setActiveView] = useState<ViewType>('dashboard');
   const [settingsTab, setSettingsTab] = useState<string | undefined>(undefined);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [editSubscription, setEditSubscription] = useState<Subscription | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [localTheme, setLocalTheme] = useState<'light' | 'dark'>('dark');
 
   useEffect(() => {
-    const unsub = subscribeToUserProfile(user.uid, (profile) => {
-      setUserProfile(profile);
-      const theme = profile?.theme || 'dark';
-      setLocalTheme(theme);
-      document.documentElement.classList.toggle('dark', theme === 'dark');
-    });
-    return () => unsub();
-  }, [user.uid]);
+    if (userProfile?.theme) {
+      setLocalTheme(userProfile.theme);
+      document.documentElement.classList.toggle('dark', userProfile.theme === 'dark');
+    }
+  }, [userProfile?.theme]);
 
   useEffect(() => {
     const unsub = subscribeToUserSubscriptions(user.uid, (subs) => {
@@ -132,19 +129,28 @@ export default function Shell({ user }: ShellProps) {
     setIsSidebarOpen(false);
   };
 
-  const isAdmin = user.email === 'ruialexandrepina@gmail.com';
+  const isAdmin = useMemo(() => {
+    if (!user) return false;
+    const userEmail = (user.email || '').toLowerCase().trim();
+    // Allow hardcoded admin OR Firestore flag
+    return userEmail === 'ruialexandrepina@gmail.com' || userProfile?.isAdmin === true;
+  }, [user.email, userProfile?.isAdmin]);
 
-  const navItems = [
-    { id: 'dashboard', label: 'Monitor', icon: LayoutDashboard },
-    { id: 'subscriptions', label: 'Subscrições', icon: CreditCard },
-    { id: 'calendar', label: 'Calendário', icon: Calendar },
-    { id: 'analytics', label: 'Análise', icon: BarChart3 },
-    { id: 'settings', label: 'Definições', icon: Settings },
-  ];
+  const navItems = useMemo(() => {
+    const items = [
+      { id: 'dashboard', label: 'Monitor', icon: LayoutDashboard },
+      { id: 'subscriptions', label: 'Subscrições', icon: CreditCard },
+      { id: 'calendar', label: 'Calendário', icon: Calendar },
+      { id: 'analytics', label: 'Análise', icon: BarChart3 },
+      { id: 'settings', label: 'Definições', icon: Settings },
+    ];
 
-  if (isAdmin) {
-    navItems.push({ id: 'admin', label: 'Admin', icon: Shield });
-  }
+    if (isAdmin) {
+      items.push({ id: 'admin', label: 'Admin', icon: Shield });
+    }
+    
+    return items;
+  }, [isAdmin]);
 
   const handleLogout = () => signOut(auth);
 
@@ -376,7 +382,12 @@ export default function Shell({ user }: ShellProps) {
             >
               <div className="text-right hidden lg:block">
                 <p className="text-sm font-black text-text-main leading-tight tracking-tight">{userProfile?.displayName || user.displayName || 'Utilizador'}</p>
-                <p className="text-[10px] text-text-muted font-black uppercase tracking-widest">Premium User</p>
+                <p className={cn(
+                  "text-[10px] font-black uppercase tracking-widest",
+                  isAdmin ? "text-accent" : "text-text-muted"
+                )}>
+                  {isAdmin ? 'Administrador' : (userProfile?.isPremium ? 'Premium User' : 'Standard User')}
+                </p>
               </div>
               <div className="w-10 h-10 rounded-xl bg-accent overflow-hidden flex items-center justify-center text-white text-xs font-black shadow-lg shadow-accent/20 border-2 border-accent">
                 {userProfile?.photoURL ? (
