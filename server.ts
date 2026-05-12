@@ -53,9 +53,13 @@ const PORT = 3000;
 
 app.use(express.json());
 
+// Serve static assets from public folder
+app.use(express.static(path.join(process.cwd(), 'public')));
+
 app.get('/api/health', async (req, res) => {
   res.json({ 
     status: 'ok', 
+    version: '1.3-bust',
     projectId: firebaseConfig.projectId,
     databaseId: firebaseConfig.firestoreDatabaseId,
     env: process.env.NODE_ENV

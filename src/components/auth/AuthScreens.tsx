@@ -131,22 +131,13 @@ export default function AuthScreens() {
             animate={{ opacity: 1, x: 0 }}
             className="flex items-center gap-2 mb-12"
           >
-            <div className="relative w-12 h-12">
-              <svg 
-                viewBox="0 0 1024 1024" 
-                fill="none" 
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-full h-full drop-shadow-xl"
-              >
-                <path d="M512 0C301.6 0 131 170.6 131 381c0 286.2 381 643 381 643s381-356.8 381-643C893 170.6 722.4 0 512 0z" fill="url(#paint0_linear_logo_auth)"/>
-                <path d="M380 340H644V420H552V520C552 520 552 570 512 570C472 570 472 520 472 520V420H380V340Z" fill="white" fillOpacity="0.9"/>
-                <defs>
-                  <linearGradient id="paint0_linear_logo_auth" x1="512" y1="0" x2="512" y2="1024" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#6366f1"/>
-                    <stop offset="1" stopColor="#8b5cf6"/>
-                  </linearGradient>
-                </defs>
-              </svg>
+            <div className="relative w-12 h-12 rounded-xl overflow-hidden shadow-lg border border-border-dim">
+              <img 
+                src="/logo.png?v=1.3" 
+                alt="Trackify Logo" 
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+              />
             </div>
             <h1 className="text-4xl font-black tracking-tight text-text-main font-display lowercase">trackify.</h1>
           </motion.div>
@@ -201,10 +192,15 @@ export default function AuthScreens() {
       <div className="flex-1 flex flex-col items-center justify-center p-6 md:p-12 relative">
         {/* Mobile Logo */}
         <div className="md:hidden mb-12 flex flex-col items-center">
-          <div className="w-12 h-12 bg-accent rounded-2xl flex items-center justify-center shadow-lg shadow-accent/20 mb-4">
-            <span className="text-white font-black text-2xl">T</span>
+          <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-lg shadow-accent/20 mb-4 border border-border-dim">
+            <img 
+              src="/logo.png?v=1.3" 
+              alt="Trackify Logo" 
+              className="w-full h-full object-cover"
+              referrerPolicy="no-referrer"
+            />
           </div>
-          <h1 className="text-3xl font-black tracking-tighter text-text-main">TRACKIFY</h1>
+          <h1 className="text-3xl font-black tracking-tighter text-text-main font-display lowercase">trackify.</h1>
         </div>
 
         <motion.div 

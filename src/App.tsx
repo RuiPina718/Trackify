@@ -24,6 +24,9 @@ export default function App() {
   const [showLoginDuringMaintenance, setShowLoginDuringMaintenance] = useState(false);
 
   useEffect(() => {
+    // Force document title in case of caching or overrides
+    document.title = "Trackify - Gestão Inteligente";
+    
     // 1. Subscribe to App Config
     const unsubConfig = subscribeToAppConfig((newConfig) => {
       setAppConfig(newConfig);

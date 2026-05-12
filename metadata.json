@@ -1,6 +1,6 @@
 {
   "name": "Trackify",
-  "description": "Personal subscription management platform to track expenses, billing dates, and consumption patterns.",
+  "description": "Smart subscription tracking and management platform. Organiza suas despesas e datas de fatura num único lugar.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }

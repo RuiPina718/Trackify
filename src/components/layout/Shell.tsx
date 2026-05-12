@@ -176,27 +176,13 @@ export default function Shell({ user }: ShellProps) {
             }}
             className="text-2xl font-black tracking-tighter text-accent flex items-center gap-2 hover:opacity-80 transition-opacity active:scale-95 group"
           >
-            <div className="relative w-10 h-10 group-hover:rotate-12 transition-transform duration-500">
-              <svg 
-                viewBox="0 0 1024 1024" 
-                fill="none" 
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-full h-full drop-shadow-xl"
-              >
-                <path d="M512 0C301.6 0 131 170.6 131 381c0 286.2 381 643 381 643s381-356.8 381-643C893 170.6 722.4 0 512 0z" fill="url(#paint0_linear_logo)"/>
-                <path d="M380 340H644V420H552V520C552 520 552 570 512 570C472 570 472 520 472 520V420H380V340Z" fill="white" fillOpacity="0.9"/>
-                <path d="M512 0C301.6 0 131 170.6 131 381c0 286.2 381 643 381 643s381-356.8 381-643C893 170.6 722.4 0 512 0z" fill="url(#paint1_radial_logo)" style={{ mixBlendMode: 'overlay' }}/>
-                <defs>
-                  <linearGradient id="paint0_linear_logo" x1="512" y1="0" x2="512" y2="1024" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#6366f1"/>
-                    <stop offset="1" stopColor="#8b5cf6"/>
-                  </linearGradient>
-                  <radialGradient id="paint1_radial_logo" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(340 250) rotate(45) scale(500)">
-                    <stop stopColor="white" stopOpacity="0.5"/>
-                    <stop offset="1" stopColor="white" stopOpacity="0"/>
-                  </radialGradient>
-                </defs>
-              </svg>
+            <div className="relative w-10 h-10 group-hover:rotate-12 transition-transform duration-500 rounded-xl overflow-hidden shadow-lg shadow-accent/20 border border-accent/20">
+              <img 
+                src="/logo.png?v=1.3" 
+                alt="Trackify Logo" 
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+              />
             </div>
             <span className="font-display lowercase tracking-tight text-3xl">trackify.</span>
           </button>
