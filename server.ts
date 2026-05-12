@@ -30,7 +30,12 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const firebaseConfigPath = path.join(__dirname, 'firebase-applet-config.json');
+// Find firebase config in dist or root
+let firebaseConfigPath = path.join(__dirname, 'firebase-applet-config.json');
+if (!fs.existsSync(firebaseConfigPath)) {
+  firebaseConfigPath = path.join(process.cwd(), 'firebase-applet-config.json');
+}
+
 const firebaseConfig = JSON.parse(fs.readFileSync(firebaseConfigPath, 'utf8'));
 
 console.log('--- Server Startup ---');
@@ -441,7 +446,7 @@ if (process.env.NODE_ENV !== 'production') {
   });
   app.use(vite.middlewares);
 } else {
-  const distPath = path.join(process.cwd(), 'dist');
+  const distPath = __dirname;
   app.use(express.static(distPath));
   app.get('*', (req, res) => {
     res.sendFile(path.join(distPath, 'index.html'));
