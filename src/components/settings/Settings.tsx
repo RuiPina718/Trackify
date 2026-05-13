@@ -52,7 +52,8 @@ import {
   Calendar,
   RefreshCw,
   Link,
-  ChevronRight
+  ChevronRight,
+  Menu
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
@@ -102,6 +103,7 @@ const AVATARS = [
 
 const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
   const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab || 'account');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const { categories: displayCategories, userCategories, loading: categoriesLoading } = useUnifiedCategories(user.uid);
   const [displayName, setDisplayName] = useState('');
@@ -584,9 +586,93 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
         <p className="text-text-muted font-bold text-xs uppercase tracking-[0.2em] mt-2">Personaliza a tua experiência no Trackify</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-        {/* Sidebar Nav */}
-        <div className="md:col-span-1 space-y-2">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-8 relative">
+        {/* Mobile Sidebar Toggle */}
+        <div className="md:hidden flex items-center justify-between bg-card border border-border-dim rounded-2xl p-4 mb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-accent/10 text-accent rounded-xl">
+              {tabs.find(t => t.id === activeTab)?.icon && React.createElement(tabs.find(t => t.id === activeTab)!.icon, { size: 18 })}
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-text-muted uppercase tracking-widest">Secção Atual</p>
+              <p className="text-sm font-black text-text-main">{tabs.find(t => t.id === activeTab)?.label}</p>
+            </div>
+          </div>
+          <button 
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="p-3 bg-accent/5 text-accent border border-accent/10 rounded-xl active:scale-95 transition-all"
+          >
+            <Menu size={20} />
+          </button>
+        </div>
+
+        {/* Mobile Navigation Drawer */}
+        <AnimatePresence>
+          {isMobileMenuOpen && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] md:hidden"
+              />
+              <motion.div
+                initial={{ x: '-100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '-100%' }}
+                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                className="fixed top-0 left-0 bottom-0 w-[280px] bg-card border-r border-border-dim z-[70] p-6 shadow-2xl md:hidden overflow-y-auto"
+              >
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-accent text-white rounded-xl">
+                      <SettingsIcon size={18} />
+                    </div>
+                    <span className="font-black text-text-main tracking-tighter uppercase italic">Menu</span>
+                  </div>
+                  <button 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="p-2 text-text-muted hover:text-text-main transition-colors"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  {tabs.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        setActiveTab(item.id);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={cn(
+                        "w-full flex items-center gap-4 px-4 py-4 rounded-2xl text-[11px] font-black transition-all text-left uppercase tracking-widest",
+                        activeTab === item.id 
+                          ? "bg-accent text-white shadow-lg shadow-accent/20" 
+                          : "text-text-muted hover:text-text-main hover:bg-bg/50"
+                      )}
+                    >
+                      <item.icon size={18} />
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="mt-auto pt-10">
+                   <div className="p-4 bg-bg border border-border-dim rounded-2xl">
+                     <p className="text-[9px] font-black text-text-muted uppercase tracking-[0.2em] mb-1">Trackify</p>
+                     <p className="text-[9px] font-bold text-text-muted/50 uppercase">Versão 1.0.0</p>
+                   </div>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* Sidebar Nav (Desktop) */}
+        <div className="hidden md:flex flex-col md:col-span-1 space-y-2">
           {tabs.map((item) => (
             <button
               key={item.id}

@@ -478,16 +478,6 @@ export default function Shell({ user, userProfile }: ShellProps) {
         </nav>
       </main>
 
-      {/* Floating Add Button for Mobile */}
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={() => setIsModalOpen(true)}
-        className="lg:hidden fixed bottom-20 right-6 w-14 h-14 bg-accent text-white rounded-2xl shadow-2xl shadow-accent/40 flex items-center justify-center z-40 border border-white/20 active:rotate-90 transition-transform duration-300"
-      >
-        <Plus size={28} />
-      </motion.button>
-
       <AddSubscriptionModal 
         isOpen={isModalOpen} 
         onClose={handleCloseModal} 
