@@ -236,7 +236,7 @@ export default function SubscriptionList({ userId, onEdit, currency = 'EUR' }: S
         )}
       </AnimatePresence>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-8">
         <AnimatePresence mode="popLayout">
           {filtered.length > 0 ? filtered.map((sub, idx) => (
             <motion.div
@@ -247,51 +247,51 @@ export default function SubscriptionList({ userId, onEdit, currency = 'EUR' }: S
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ delay: idx * 0.05 }}
               className={cn(
-                "group relative bg-card border border-border-dim rounded-[3rem] p-8 sm:p-12 hover:border-accent transition-all duration-500 hover:shadow-premium overflow-hidden",
+                "group relative bg-card border border-border-dim rounded-[2rem] lg:rounded-[3rem] p-6 lg:p-10 hover:border-accent transition-all duration-500 hover:shadow-premium overflow-hidden",
                 sub.status === 'cancelled' && "opacity-60 grayscale"
               )}
             >
               {/* Background accent glow */}
               <div className="absolute -right-20 -top-20 w-40 h-40 bg-accent/5 rounded-full blur-3xl group-hover:bg-accent/10 transition-colors duration-500" />
 
-              <div className="flex justify-between items-start mb-10 relative z-10">
-                <div className="flex items-center gap-6">
-                  <div className="w-16 h-16 rounded-[2rem] bg-accent/5 border border-accent/10 flex items-center justify-center text-accent shadow-inner group-hover:bg-accent group-hover:text-white transition-all duration-300">
+              <div className="flex justify-between items-start mb-6 lg:mb-10 relative z-10">
+                <div className="flex items-center gap-4 lg:gap-6">
+                  <div className="w-12 h-12 lg:w-16 lg:h-16 rounded-2xl lg:rounded-[2rem] bg-accent/5 border border-accent/10 flex items-center justify-center text-accent shadow-inner group-hover:bg-accent group-hover:text-white transition-all duration-300 shrink-0">
                     <IconRenderer 
                       name={sub.icon || categories.find(c => c.name === sub.category)?.icon} 
-                      size={28} 
+                      size={24} 
                       className="transition-transform duration-500 group-hover:scale-110" 
-                      fallback={<span className="text-3xl font-black">{sub.name.charAt(0)}</span>} 
+                      fallback={<span className="text-xl lg:text-3xl font-black">{sub.name.charAt(0)}</span>} 
                     />
                   </div>
-                  <div>
-                    <h3 className="text-2xl font-black text-text-main tracking-tight leading-tight mb-2 group-hover:text-accent transition-colors">{sub.name}</h3>
+                  <div className="min-w-0">
+                    <h3 className="text-xl lg:text-2xl font-black text-text-main tracking-tight leading-tight mb-1 lg:mb-2 group-hover:text-accent transition-colors truncate">{sub.name}</h3>
                     <div className="flex items-center gap-2">
                       <div 
-                        className="w-2.5 h-2.5 rounded-full" 
+                        className="w-2 lg:w-2.5 h-2 lg:h-2.5 rounded-full" 
                         style={{ backgroundColor: categories.find(c => c.name === sub.category)?.color || '#94a3b8' }}
                       />
-                      <p className="micro-label opacity-70">{sub.category}</p>
+                      <p className="micro-label opacity-70 truncate">{sub.category}</p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-8 relative z-10">
+              <div className="space-y-6 lg:space-y-8 relative z-10">
                 <div className="flex items-end justify-between">
                   <div>
-                    <p className="micro-label mb-3">Valor / Período</p>
-                    <p className="text-4xl font-black text-text-main tracking-tighter tabular-nums font-display">
+                    <p className="micro-label mb-2 lg:mb-3">Valor / Período</p>
+                    <p className="text-3xl lg:text-4xl font-black text-text-main tracking-tighter tabular-nums font-display">
                       {formatCurrency(sub.amount, sub.currency || currency)}
-                      <span className="text-xs text-text-muted ml-2 font-black uppercase tracking-widest opacity-40">/{sub.billingCycle === 'monthly' ? 'mês' : 'ano'}</span>
+                      <span className="text-[10px] text-text-muted ml-1.5 lg:ml-2 font-black uppercase tracking-widest opacity-40">/{sub.billingCycle === 'monthly' ? 'mês' : 'ano'}</span>
                     </p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 py-6 border-y border-border-dim/50">
+                <div className="grid grid-cols-2 gap-4 py-4 lg:py-6 border-y border-border-dim/50">
                   <div>
                     <p className="micro-label mb-1">Próxima Cobrança</p>
-                    <p className="text-sm font-bold text-text-main uppercase tracking-tight">
+                    <p className="text-xs lg:text-sm font-bold text-text-main uppercase tracking-tight">
                       Dia {sub.billingDay}
                       {(sub.billingCycle === 'yearly' || sub.billingCycle === 'annual') && sub.billingMonth && (
                         <span className="text-accent ml-1.5">
@@ -302,29 +302,29 @@ export default function SubscriptionList({ userId, onEdit, currency = 'EUR' }: S
                   </div>
                   <div className="text-right">
                     <p className="micro-label mb-1">Estado</p>
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center justify-end gap-1.5 lg:gap-2">
                       <div className={cn(
-                        "w-2 h-2 rounded-full animate-pulse",
+                        "w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full animate-pulse",
                         sub.status === 'active' ? "bg-health" : "bg-text-muted/30"
                       )} />
-                      <p className="text-[10px] font-black uppercase tracking-widest text-text-main">
+                      <p className="text-[9px] lg:text-[10px] font-black uppercase tracking-widest text-text-main">
                         {sub.status === 'active' ? 'Ativo' : 'Pausado'}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 lg:gap-3">
                   <button 
                     onClick={() => onEdit(sub)}
-                    className="flex-1 py-3.5 bg-bg border border-border-dim rounded-2xl text-[10px] font-black text-text-main uppercase tracking-[0.2em] hover:border-accent hover:text-accent transition-all active:scale-[0.98]"
+                    className="flex-1 py-3 lg:py-3.5 bg-bg border border-border-dim rounded-xl lg:rounded-2xl text-[9px] lg:text-[10px] font-black text-text-main uppercase tracking-[0.2em] hover:border-accent hover:text-accent transition-all active:scale-[0.98]"
                   >
                     Editar
                   </button>
                   <button 
                     onClick={() => toggleStatus(sub)}
                     className={cn(
-                      "flex-1 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all active:scale-[0.98] border",
+                      "flex-1 py-3 lg:py-3.5 rounded-xl lg:rounded-2xl text-[9px] lg:text-[10px] font-black uppercase tracking-[0.2em] transition-all active:scale-[0.98] border",
                       sub.status === 'active' 
                         ? "bg-red-500/5 border-red-500/10 text-red-500 hover:bg-red-500 hover:text-white" 
                         : "bg-accent text-white border-accent hover:bg-accent/90"
@@ -334,9 +334,9 @@ export default function SubscriptionList({ userId, onEdit, currency = 'EUR' }: S
                   </button>
                   <button 
                     onClick={(e) => handleDeleteClick(e, sub)}
-                    className="p-3.5 bg-bg border border-border-dim rounded-2xl text-text-muted hover:text-red-500 hover:border-red-500 transition-all active:scale-[0.98]"
+                    className="p-3 lg:p-3.5 bg-bg border border-border-dim rounded-xl lg:rounded-2xl text-text-muted hover:text-red-500 hover:border-red-500 transition-all active:scale-[0.98]"
                   >
-                    <Trash2 size={18} />
+                    <Trash2 size={16} />
                   </button>
                 </div>
               </div>

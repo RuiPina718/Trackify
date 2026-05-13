@@ -156,17 +156,17 @@ export default function AnalyticsView({ userId, currency = 'EUR' }: AnalyticsVie
   }
 
   return (
-    <div className="space-y-8 pb-20">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h2 className="text-3xl font-black text-text-main tracking-tighter">Inteligência de Gastos</h2>
-          <p className="text-text-muted font-bold text-[10px] uppercase tracking-widest mt-1 opacity-70">Gráficos e insights profundos sobre as tuas finanças</p>
+    <div className="space-y-6 sm:space-y-8 pb-20">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 px-1">
+        <div className="min-w-0">
+          <h2 className="text-2xl sm:text-3xl font-black text-text-main tracking-tighter truncate">Inteligência de Gastos</h2>
+          <p className="text-text-muted font-bold text-[10px] uppercase tracking-widest mt-1 opacity-70 truncate">Análise profunda das tuas finanças</p>
         </div>
-        <div className="flex bg-card p-1.5 rounded-2xl border border-border-dim">
+        <div className="flex bg-card p-1.5 rounded-2xl border border-border-dim w-full sm:w-auto">
           <button 
             onClick={() => setView('monthly')}
             className={cn(
-              "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+              "flex-1 sm:flex-none px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
               view === 'monthly' ? "bg-bg text-accent shadow-sm" : "text-text-muted hover:text-text-main"
             )}
           >
@@ -175,7 +175,7 @@ export default function AnalyticsView({ userId, currency = 'EUR' }: AnalyticsVie
           <button 
             onClick={() => setView('yearly')}
             className={cn(
-              "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+              "flex-1 sm:flex-none px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
               view === 'yearly' ? "bg-bg text-accent shadow-sm" : "text-text-muted hover:text-text-main"
             )}
           >
@@ -185,51 +185,51 @@ export default function AnalyticsView({ userId, currency = 'EUR' }: AnalyticsVie
       </div>
 
       {/* Main Stats Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="lg:col-span-1 bg-accent rounded-[3rem] p-8 flex flex-col justify-between shadow-2xl shadow-accent/20 relative overflow-hidden group min-h-[300px]"
+          className="lg:col-span-1 bg-accent rounded-[2rem] lg:rounded-[3rem] p-6 lg:p-8 flex flex-col justify-between shadow-2xl shadow-accent/20 relative overflow-hidden group min-h-[260px] lg:min-h-[300px]"
         >
           <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:bg-white/20 transition-all opacity-50" />
           
           <div className="relative z-10">
             <div className="flex items-center gap-2 mb-4">
-              <div className="p-2 bg-white/20 rounded-xl">
+              <div className="p-2 bg-white/20 rounded-xl shrink-0">
                 <Wallet size={16} className="text-white" />
               </div>
-              <p className="text-[11px] font-black text-white/70 uppercase tracking-[0.3em]">
+              <p className="text-[10px] lg:text-[11px] font-black text-white/70 uppercase tracking-[0.2em] lg:tracking-[0.3em] truncate">
                 {view === 'monthly' ? 'Custo Mensal Ativo' : 'Custo Anual Projetado'}
               </p>
             </div>
-            <h3 className="text-5xl font-black text-white tracking-tighter tabular-nums leading-none mb-6">
+            <h3 className="text-4xl lg:text-5xl font-black text-white tracking-tighter tabular-nums leading-none mb-6">
               {formatCurrency(stats.periodTotal, currency)}
             </h3>
             
             <div className={cn(
-              "flex items-center gap-2 px-3 py-1.5 rounded-full w-fit border text-[10px] font-black uppercase tracking-widest",
+              "flex items-center gap-2 px-3 py-1.5 rounded-full w-fit border text-[9px] lg:text-[10px] font-black uppercase tracking-widest",
               stats.diffPercentage <= 0 
                 ? "bg-white/20 border-white/20 text-white" 
                 : "bg-red-500/20 border-red-400/20 text-white"
             )}>
-              {stats.diffPercentage <= 0 ? <ArrowDownRight size={12} /> : <ArrowUpRight size={12} />}
-              {Math.abs(Math.round(stats.diffPercentage))}% vs mês anterior
+              {stats.diffPercentage <= 0 ? <ArrowDownRight size={10} /> : <ArrowUpRight size={10} />}
+              {Math.abs(Math.round(stats.diffPercentage))}% vs anterior
             </div>
           </div>
 
           <div className="mt-8 pt-6 border-t border-white/10 flex justify-between items-end">
             <div>
-              <p className="text-[10px] font-black text-white/50 uppercase tracking-widest mb-1 opacity-80">
+              <p className="text-[9px] lg:text-[10px] font-black text-white/50 uppercase tracking-widest mb-1 opacity-80">
                 {view === 'monthly' ? 'Custo Diário' : 'Custo Mensal Médio'}
               </p>
-              <p className="text-xl font-black text-white tabular-nums tracking-tight">
+              <p className="text-lg lg:text-xl font-black text-white tabular-nums tracking-tight">
                 {view === 'monthly' 
                   ? formatCurrency(stats.monthlyTotal / 30, currency)
                   : formatCurrency(stats.monthlyTotal, currency)
                 }
               </p>
             </div>
-            <div className="p-3 bg-white/10 rounded-2xl border border-white/10">
+            <div className="p-2 lg:p-3 bg-white/10 rounded-2xl border border-white/10 shrink-0">
               <Activity size={18} className="text-white animate-pulse" />
             </div>
           </div>
@@ -239,25 +239,25 @@ export default function AnalyticsView({ userId, currency = 'EUR' }: AnalyticsVie
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.1 }}
-          className="lg:col-span-2 bg-card border border-border-dim p-8 rounded-[3rem] shadow-xl shadow-bg flex flex-col group hover:border-accent transition-all min-h-[300px]"
+          className="lg:col-span-2 bg-card border border-border-dim p-6 lg:p-8 rounded-[2rem] lg:rounded-[3rem] shadow-xl shadow-bg flex flex-col group hover:border-accent transition-all min-h-[300px]"
         >
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-accent/5 rounded-2xl text-accent border border-accent/10">
-                <TrendingUp size={22} />
+              <div className="p-2.5 lg:p-3 bg-accent/5 rounded-2xl text-accent border border-accent/10 shrink-0">
+                <TrendingUp className="w-5 h-5 lg:w-[22px] lg:h-[22px]" />
               </div>
-              <div>
-                <p className="text-sm font-black text-text-main tracking-tight">Fluxo de Caixa (Histórico)</p>
-                <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] mt-1 opacity-70">Custo total nos últimos 6 meses</p>
+              <div className="min-w-0">
+                <p className="text-xs lg:text-sm font-black text-text-main tracking-tight truncate">Fluxo de Caixa (Histórico)</p>
+                <p className="text-[9px] lg:text-[10px] font-black text-text-muted uppercase tracking-[0.2em] mt-0.5 opacity-70 truncate">Últimos 6 meses</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-accent"></span>
-              <span className="text-[10px] font-black text-text-muted uppercase tracking-widest">Despesa Total</span>
+            <div className="flex items-center gap-2 self-start sm:self-center">
+              <span className="w-2 h-2 rounded-full bg-accent"></span>
+              <span className="text-[9px] font-black text-text-muted uppercase tracking-widest">Despesa Total</span>
             </div>
           </div>
           
-          <div className="h-64 mt-auto">
+          <div className="h-48 lg:h-64 mt-auto">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={stats.history}>
                 <defs>
@@ -271,7 +271,7 @@ export default function AnalyticsView({ userId, currency = 'EUR' }: AnalyticsVie
                   dataKey="name" 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fontSize: 10, fontWeight: '900', fill: 'var(--color-text-muted)' }} 
+                  tick={{ fontSize: 9, fontWeight: '900', fill: 'var(--color-text-muted)' }} 
                   dy={10}
                 />
                 <YAxis 
@@ -282,9 +282,9 @@ export default function AnalyticsView({ userId, currency = 'EUR' }: AnalyticsVie
                   cursor={{ stroke: 'var(--color-accent)', strokeWidth: 1 }}
                   contentStyle={{ 
                     backgroundColor: 'var(--color-card)', 
-                    borderRadius: '1.5rem', 
+                    borderRadius: '1.2rem', 
                     border: '1px solid var(--color-border-dim)', 
-                    fontSize: '11px', 
+                    fontSize: '10px', 
                     fontWeight: '900',
                     boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)'
                   }}
@@ -294,7 +294,7 @@ export default function AnalyticsView({ userId, currency = 'EUR' }: AnalyticsVie
                   type="monotone" 
                   dataKey="total" 
                   stroke="var(--color-accent)" 
-                  strokeWidth={4}
+                  strokeWidth={3}
                   fillOpacity={1} 
                   fill="url(#colorTotal)" 
                   animationDuration={1500}
@@ -306,34 +306,34 @@ export default function AnalyticsView({ userId, currency = 'EUR' }: AnalyticsVie
       </div>
 
       {/* Secondary Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.2 }}
-          className="lg:col-span-4 space-y-6"
+          className="lg:col-span-4 space-y-4 lg:space-y-6"
         >
           {/* Distribution card */}
-          <div className="bg-card border border-border-dim p-8 rounded-[3rem] shadow-xl shadow-bg flex flex-col group hover:border-accent transition-all">
+          <div className="bg-card border border-border-dim p-6 lg:p-8 rounded-[2rem] lg:rounded-[3rem] shadow-xl shadow-bg flex flex-col group hover:border-accent transition-all">
             <div className="flex items-center gap-4 mb-4">
-              <div className="p-3 bg-purple-500/5 rounded-2xl text-purple-500 border border-purple-500/10">
-                <PieChartIcon size={22} />
+              <div className="p-2.5 bg-purple-500/5 rounded-xl lg:rounded-2xl text-purple-500 border border-purple-500/10 shrink-0">
+                <PieChartIcon size={20} />
               </div>
-              <div>
-                <p className="text-sm font-black text-text-main tracking-tight">Distribuição</p>
-                <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] mt-1 opacity-70">Focus por Categoria</p>
+              <div className="min-w-0">
+                <p className="text-xs lg:text-sm font-black text-text-main tracking-tight truncate">Distribuição</p>
+                <p className="text-[9px] lg:text-[10px] font-black text-text-muted uppercase tracking-[0.2em] mt-0.5 opacity-70 truncate">Por Categoria</p>
               </div>
             </div>
             
-            <div className="h-48 flex-1">
+            <div className="h-40 lg:h-48 flex-1">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={stats.categoryData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={45}
-                    outerRadius={65}
+                    innerRadius={40}
+                    outerRadius={60}
                     paddingAngle={5}
                     dataKey="value"
                     stroke="none"
@@ -343,21 +343,21 @@ export default function AnalyticsView({ userId, currency = 'EUR' }: AnalyticsVie
                     ))}
                   </Pie>
                   <Tooltip 
-                     contentStyle={{ backgroundColor: 'var(--color-card)', borderRadius: '1.5rem', border: '1px solid var(--color-border-dim)', fontSize: '11px', fontWeight: '900' }}
+                     contentStyle={{ backgroundColor: 'var(--color-card)', borderRadius: '1rem', border: '1px solid var(--color-border-dim)', fontSize: '10px', fontWeight: '900' }}
                   />
                 </PieChart>
               </ResponsiveContainer>
             </div>
             
-            <div className="mt-4 space-y-2">
+            <div className="mt-4 space-y-1.5">
               {stats.categoryData.slice(0, 3).map((cat, i) => (
-                <div key={cat.name} className="flex items-center justify-between p-3 bg-bg/50 rounded-xl border border-border-dim/50">
-                  <div className="flex items-center gap-3">
-                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cat.color || '#6366f1' }}></span>
-                    <span className="text-[10px] font-black text-text-muted uppercase tracking-widest">{cat.name}</span>
+                <div key={cat.name} className="flex items-center justify-between p-2.5 lg:p-3 bg-bg/50 rounded-xl border border-border-dim/50">
+                  <div className="flex items-center gap-2 lg:gap-3 min-w-0">
+                    <span className="w-2 h-2 lg:w-2.5 lg:h-2.5 rounded-full shrink-0" style={{ backgroundColor: cat.color || '#6366f1' }}></span>
+                    <span className="text-[9px] lg:text-[10px] font-black text-text-muted uppercase tracking-widest truncate">{cat.name}</span>
                   </div>
-                  <div className="text-right">
-                    <span className="text-[11px] font-black text-text-main tabular-nums">{formatCurrency(cat.value, currency)}</span>
+                  <div className="text-right ml-2 shrink-0">
+                    <span className="text-[10px] lg:text-[11px] font-black text-text-main tabular-nums">{formatCurrency(cat.value, currency)}</span>
                   </div>
                 </div>
               ))}
@@ -365,21 +365,21 @@ export default function AnalyticsView({ userId, currency = 'EUR' }: AnalyticsVie
           </div>
 
           {/* Optimization Card */}
-          <div className="bg-bg border border-accent/20 p-8 rounded-[3rem] shadow-sm relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-6 opacity-10">
-              <Sparkles size={100} className="text-accent" />
+          <div className="bg-bg border border-accent/20 p-6 lg:p-8 rounded-[2rem] lg:rounded-[3rem] shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 lg:p-6 opacity-10">
+              <Sparkles className="text-accent w-20 h-20 lg:w-[100px] lg:h-[100px]" />
             </div>
-            <h4 className="text-xs font-black text-accent uppercase tracking-[0.2em] mb-4">Otimização Pró</h4>
+            <h4 className="text-[10px] font-black text-accent uppercase tracking-[0.2em] mb-4">Otimização Pró</h4>
             <div className="space-y-4">
               <div>
-                <p className="text-2xl font-black text-text-main leading-none">
+                <p className="text-xl lg:text-2xl font-black text-text-main leading-none">
                   {formatCurrency(stats.yearlyLostOpportunity, currency)}
                 </p>
-                <p className="text-[9px] text-text-muted font-bold uppercase tracking-widest mt-1">Poupança anual perdida em taxas mensais</p>
+                <p className="text-[8px] lg:text-[9px] text-text-muted font-bold uppercase tracking-widest mt-1 opacity-60">Perda anual em planos mensais</p>
               </div>
-              <div className="p-4 bg-accent/5 rounded-2xl border border-accent/10">
+              <div className="p-3 bg-accent/5 rounded-xl border border-accent/10">
                 <p className="text-[9px] text-accent font-black uppercase leading-relaxed tracking-wider">
-                  Mudar para faturas anuais pode reduzir os teus custos em 15% em média.
+                  Mudar para faturamentos anuais pode reduzir custos em 15% em média.
                 </p>
               </div>
             </div>
@@ -390,71 +390,71 @@ export default function AnalyticsView({ userId, currency = 'EUR' }: AnalyticsVie
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.3 }}
-          className="lg:col-span-8 bg-card border border-border-dim p-8 rounded-[3rem] shadow-xl shadow-bg group hover:border-accent transition-all overflow-hidden"
+          className="lg:col-span-8 bg-card border border-border-dim p-6 lg:p-8 rounded-[2rem] lg:rounded-[3rem] shadow-xl shadow-bg group hover:border-accent transition-all overflow-hidden"
         >
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-accent/5 rounded-2xl text-accent border border-accent/10">
-                <Calendar size={22} />
+              <div className="p-3 bg-accent/5 rounded-2xl text-accent border border-accent/10 shrink-0">
+                <Calendar size={20} />
               </div>
-              <div>
-                <p className="text-sm font-black text-text-main tracking-tight">Impacto Individual</p>
-                <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] mt-1 opacity-70">Subscrições com maior custo mensal</p>
+              <div className="min-w-0">
+                <p className="text-xs lg:text-sm font-black text-text-main tracking-tight truncate">Impacto Individual</p>
+                <p className="text-[9px] lg:text-[10px] font-black text-text-muted uppercase tracking-[0.2em] mt-0.5 opacity-70 truncate">Maiores custos</p>
               </div>
             </div>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 h-full content-start">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4 h-full content-start">
             {stats.topSubs.map((sub, idx) => (
               <div 
                 key={sub.id} 
                 className={cn(
-                  "flex items-center justify-between p-5 bg-bg/50 border border-border-dim/50 rounded-[2rem] hover:border-accent/40 transition-all group/item",
-                  idx === 0 && "sm:col-span-2 bg-accent/5 border-accent/10 sm:scale-[1.02]"
+                  "flex items-center justify-between p-4 lg:p-5 bg-bg/50 border border-border-dim/50 rounded-2xl lg:rounded-[2rem] hover:border-accent/40 transition-all group/item",
+                  idx === 0 && "sm:col-span-2 bg-accent/5 border-accent/10 sm:scale-[1.01]"
                 )}
               >
-                <div className="flex items-center gap-5">
-                  <div className="w-12 h-12 rounded-2xl bg-card border border-border-dim flex items-center justify-center text-accent group-hover/item:scale-110 transition-transform">
-                    <IconRenderer name={sub.icon} size={24} fallback={<span className="font-black text-[12px]">{idx + 1}</span>} />
+                <div className="flex items-center gap-4 min-w-0">
+                  <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl lg:rounded-2xl bg-card border border-border-dim flex items-center justify-center text-accent group-hover/item:scale-105 transition-transform shrink-0">
+                    <IconRenderer name={sub.icon} className="w-5 h-5 lg:w-6 lg:h-6" fallback={<span className="font-black text-[10px]">{idx + 1}</span>} />
                   </div>
-                  <div>
-                    <p className="text-base font-black text-text-main leading-tight tracking-tight">{sub.name}</p>
-                    <p className="text-[10px] text-text-muted font-black uppercase tracking-[0.2em] mt-1 opacity-80">{sub.category}</p>
+                  <div className="min-w-0">
+                    <p className="text-sm lg:text-base font-black text-text-main leading-tight tracking-tight truncate">{sub.name}</p>
+                    <p className="text-[9px] lg:text-[10px] text-text-muted font-black uppercase tracking-[0.2em] mt-0.5 opacity-80 truncate">{sub.category}</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-lg font-black text-text-main tabular-nums">{formatCurrency(sub.amount, sub.currency || currency)}</p>
-                  <p className="text-[10px] text-text-muted font-black uppercase tracking-widest opacity-60">/{sub.billingCycle === 'monthly' ? 'mês' : 'ano'}</p>
+                <div className="text-right ml-2 shrink-0">
+                  <p className="text-base lg:text-lg font-black text-text-main tabular-nums">{formatCurrency(sub.amount, sub.currency || currency)}</p>
+                  <p className="text-[9px] lg:text-[10px] text-text-muted font-black uppercase tracking-widest opacity-40">/{sub.billingCycle === 'monthly' ? 'mês' : 'ano'}</p>
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="mt-8 p-6 bg-accent rounded-[2rem] flex items-center justify-between group/tip shadow-xl shadow-accent/20">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-white">
-                <Sparkles size={20} />
+          <div className="mt-8 p-4 lg:p-6 bg-accent rounded-2xl lg:rounded-[2rem] flex items-center justify-between group/tip shadow-xl shadow-accent/20">
+            <div className="flex items-center gap-3 lg:gap-4 min-w-0">
+              <div className="w-9 h-9 lg:w-10 lg:h-10 bg-white/20 rounded-xl flex items-center justify-center text-white shrink-0">
+                <Sparkles size={18} />
               </div>
-              <div>
-                <p className="text-[11px] font-black text-white/90 uppercase tracking-widest leading-relaxed">
+              <div className="min-w-0">
+                <p className="text-[10px] lg:text-[11px] font-black text-white/90 uppercase tracking-widest leading-relaxed line-clamp-2">
                   {stats.highDensityCategories.length > 0 
-                    ? `Tens fadiga em ${stats.highDensityCategories[0].name.toLowerCase()}. Revisa duplicados.`
-                    : `Estás a gerir bem os teus gastos em ${currency}. Mantém o foco!`}
+                    ? `Fadiga em ${stats.highDensityCategories[0].name.toLowerCase()}. Revisa duplicados.`
+                    : `Estás a gerir bem os teus gastos em ${currency}.`}
                 </p>
-                <p className="text-[10px] text-white/50 font-black uppercase tracking-widest">
-                  IA Analysis • {stats.highDensityCategories.length > 0 ? 'Ação recomendada' : 'Tudo sob controlo'}
+                <p className="text-[8px] lg:text-[9px] text-white/40 font-black uppercase tracking-[0.2em] mt-0.5">
+                  IA • Análise Ativa
                 </p>
               </div>
             </div>
-            <div className="hidden sm:block p-2 bg-white/20 rounded-full text-white">
-              <ArrowUpRight size={20} />
+            <div className="hidden md:block p-2 bg-white/20 rounded-full text-white shrink-0 ml-4">
+              <ArrowUpRight size={18} />
             </div>
           </div>
 
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-6 bg-bg border border-border-dim rounded-[2rem]">
-              <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] mb-4">Projeção 12 Meses</p>
-              <div className="h-32">
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="p-5 lg:p-6 bg-bg border border-border-dim rounded-2xl lg:rounded-[2rem]">
+              <p className="text-[9px] lg:text-[10px] font-black text-text-muted uppercase tracking-[0.2em] mb-4">Projeção 12 Meses</p>
+              <div className="h-24 lg:h-32">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={stats.projection}>
                     <Area 
@@ -465,29 +465,30 @@ export default function AnalyticsView({ userId, currency = 'EUR' }: AnalyticsVie
                       fillOpacity={0.05} 
                       strokeWidth={2}
                     />
-                    <Tooltip 
-                       contentStyle={{ display: 'none' }}
-                    />
+                    <Tooltip contentStyle={{ display: 'none' }} />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
               <div className="flex justify-between items-end mt-4">
-                <span className="text-[9px] font-black text-text-muted uppercase">Ano Total:</span>
-                <span className="text-lg font-black text-text-main">{formatCurrency(stats.monthlyTotal * 12, currency)}</span>
+                <span className="text-[8px] font-black text-text-muted uppercase tracking-widest">Ano Total:</span>
+                <span className="text-base lg:text-lg font-black text-text-main tabular-nums">{formatCurrency(stats.monthlyTotal * 12, currency)}</span>
               </div>
             </div>
             
-            <div className="p-6 bg-bg border border-border-dim rounded-[2rem] flex flex-col justify-between">
+            <div className="p-5 lg:p-6 bg-bg border border-border-dim rounded-2xl lg:rounded-[2rem] flex flex-col justify-between min-h-[160px]">
               <div>
-                <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] mb-1">
-                  Média por Item ({view === 'monthly' ? 'mês' : 'ano'})
+                <p className="text-[9px] lg:text-[10px] font-black text-text-muted uppercase tracking-[0.2em] mb-1">
+                  Média por Item
                 </p>
-                <p className="text-xl font-black text-text-main">
+                <p className="text-lg lg:text-xl font-black text-text-main tabular-nums">
                   {formatCurrency(stats.periodTotal / (subscriptions.length || 1), currency)}
                 </p>
               </div>
-              <div className="mt-4 pt-4 border-t border-border-dim">
-                <p className="text-[10px] font-black text-accent uppercase tracking-widest">Score de Saúde</p>
+              <div className="mt-6 pt-4 border-t border-border-dim">
+                <p className="text-[9px] font-black text-accent uppercase tracking-widest flex justify-between">
+                  Score de Saúde
+                  <span>{Math.min(100, Math.max(20, 100 - (subscriptions.length * 5)))}%</span>
+                </p>
                 <div className="h-1.5 w-full bg-card rounded-full mt-2 overflow-hidden">
                   <div 
                     className="h-full bg-accent transition-all duration-1000" 

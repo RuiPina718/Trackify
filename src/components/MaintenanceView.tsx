@@ -89,7 +89,7 @@ export default function MaintenanceView({
           )}
 
           <p className="mt-10 text-[10px] font-black text-text-muted uppercase tracking-[0.3em] opacity-30">
-            SubManager Pro • © 2026
+            Trackify • © 2026
           </p>
 
           {!isAdmin && onStaffLogin && (

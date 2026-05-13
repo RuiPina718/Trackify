@@ -1,7 +1,7 @@
-# Documento de Requisitos do Produto (PRD) - SubManager Pro
+# Documento de Requisitos do Produto (PRD) - Trackify
 
 ## 1. Visão Geral
-O **SubManager Pro** é uma aplicação centralizada para gestão de subscrições, focada em fornecer transparência financeira, previsibilidade de gastos e otimização de custos através de IA e análises avançadas.
+O **Trackify** é uma aplicação centralizada para gestão de subscrições, focada em fornecer transparência financeira, previsibilidade de gastos e otimização de custos através de IA e análises avançadas.
 
 ## 2. Objetivos Principais
 - Fornecer uma visão clara de todos os gastos recorrentes.

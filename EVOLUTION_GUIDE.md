@@ -1,6 +1,6 @@
 # Guia de Evolução: PRD Inicial vs. Versão Atual
 
-Este guia detalha a transformação do **SubManager Pro** desde a sua conceção inicial até à versão atual, destacando os principais upgrades de funcionalidade e experiência de utilizador (UX).
+Este guia detalha a transformação do **Trackify** desde a sua conceção inicial até à versão atual, destacando os principais upgrades de funcionalidade e experiência de utilizador (UX).
 
 | Área | Conceito Inicial (v1) | Versão Atual (Upgraded) | Impacto / Melhoria |
 | :--- | :--- | :--- | :--- |

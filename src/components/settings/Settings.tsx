@@ -1522,7 +1522,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                         </button>
                         
                         <p className="text-[9px] font-black text-text-muted/30 uppercase tracking-widest pt-2">
-                          SUBMANAGER PRO • SISTEMA DE GESTÃO
+                          TRACKIFY • SISTEMA DE GESTÃO
                         </p>
                       </div>
                     </motion.div>
