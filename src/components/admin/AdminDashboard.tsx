@@ -318,22 +318,22 @@ const AdminDashboard: React.FC = () => {
   return (
     <div className="space-y-8 pb-12">
       {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-          <h2 className="text-4xl font-black text-text-main tracking-tighter leading-none">Management</h2>
-          <p className="text-text-muted font-bold text-[10px] uppercase tracking-[0.3em] mt-3">Painel Administrativo v2.0</p>
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 px-1">
+        <div className="text-center lg:text-left">
+          <h2 className="text-3xl md:text-4xl font-black text-text-main tracking-tighter leading-none">Management</h2>
+          <p className="text-text-muted font-bold text-[9px] md:text-[10px] uppercase tracking-[0.3em] mt-3">Painel Administrativo v2.0</p>
         </div>
         
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-center gap-3">
           <button 
             onClick={handleExport}
-            className="group flex items-center gap-2 px-5 py-3 bg-card border border-border-dim rounded-2xl text-[10px] font-black uppercase tracking-widest hover:border-accent transition-all"
+            className="w-full sm:w-auto group flex items-center justify-center gap-2 px-5 py-3 bg-card border border-border-dim rounded-2xl text-[10px] font-black uppercase tracking-widest hover:border-accent transition-all"
           >
             <Download size={16} className="text-text-muted group-hover:text-accent transition-colors" />
             <span className="text-text-muted group-hover:text-text-main transition-colors">Exportar Dados</span>
           </button>
           
-          <div className="bg-accent/10 border border-accent/20 px-5 py-3 rounded-2xl flex items-center gap-3 shadow-lg shadow-accent/5">
+          <div className="w-full sm:w-auto bg-accent/10 border border-accent/20 px-5 py-3 rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-accent/5">
             <ShieldCheck size={18} className="text-accent" />
             <span className="text-[10px] font-black text-accent uppercase tracking-widest leading-none">Secure Admin Access</span>
           </div>
@@ -364,21 +364,22 @@ const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Tabs Navigation */}
-      <div className="flex items-center gap-2 bg-card p-2 border border-border-dim rounded-[2rem] w-fit mx-auto lg:mx-0">
+      <div className="flex items-center gap-1 bg-card p-1.5 border border-border-dim rounded-[2rem] w-full lg:w-fit mx-auto lg:mx-0 overflow-x-auto no-scrollbar">
         <button
           onClick={() => setActiveTab('users')}
           className={cn(
-            "flex items-center gap-2 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all",
+            "flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex-1 lg:flex-none",
             activeTab === 'users' ? "bg-accent text-white shadow-lg shadow-accent/20" : "text-text-muted hover:bg-bg"
           )}
         >
           <Users size={16} />
-          Utilizadores
+          <span className="hidden sm:inline">Utilizadores</span>
+          <span className="sm:hidden">Users</span>
         </button>
         <button
           onClick={() => setActiveTab('analytics')}
           className={cn(
-            "flex items-center gap-2 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all",
+            "flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex-1 lg:flex-none",
             activeTab === 'analytics' ? "bg-accent text-white shadow-lg shadow-accent/20" : "text-text-muted hover:bg-bg"
           )}
         >
@@ -388,7 +389,7 @@ const AdminDashboard: React.FC = () => {
         <button
           onClick={() => setActiveTab('logs')}
           className={cn(
-            "flex items-center gap-2 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all",
+            "flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex-1 lg:flex-none",
             activeTab === 'logs' ? "bg-accent text-white shadow-lg shadow-accent/20" : "text-text-muted hover:bg-bg"
           )}
         >
@@ -398,12 +399,13 @@ const AdminDashboard: React.FC = () => {
         <button
           onClick={() => setActiveTab('system')}
           className={cn(
-            "flex items-center gap-2 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all",
+            "flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex-1 lg:flex-none",
             activeTab === 'system' ? "bg-accent text-white shadow-lg shadow-accent/20" : "text-text-muted hover:bg-bg"
           )}
         >
           <Shield size={16} />
-          Sistema
+          <span className="hidden sm:inline">Sistema</span>
+          <span className="sm:hidden">System</span>
         </button>
       </div>
 
@@ -464,8 +466,74 @@ const AdminDashboard: React.FC = () => {
               </AnimatePresence>
             </div>
 
-            {/* Table Area */}
-            <div className="overflow-x-auto">
+            {/* User List: Mobile Cards + Desktop Table */}
+            <div className="md:hidden space-y-4 p-4 lg:p-8">
+              {filteredUsers.length > 0 ? filteredUsers.map(user => {
+                const userSubs = allSubscriptions.filter(s => s.userId === user.uid);
+                return (
+                  <div key={user.uid} className="bg-bg border border-border-dim rounded-3xl p-5 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-2xl bg-card border border-border-dim overflow-hidden flex items-center justify-center text-accent text-sm font-black shrink-0">
+                        {user.photoURL ? (
+                          <img src={user.photoURL} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          (user.displayName || user.email || 'U').charAt(0).toUpperCase()
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-black text-text-main truncate">{user.displayName || 'Utilizador Geral'}</p>
+                        <p className="text-[10px] text-text-muted font-bold truncate">{user.email}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <span className={cn(
+                        "px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border",
+                        user.isAdmin ? "bg-accent/10 border-accent text-accent" : "bg-card/50 border-border-dim text-text-muted"
+                      )}>
+                        {user.isAdmin ? 'Admin' : 'Membro'}
+                      </span>
+                      <span className={cn(
+                        "px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border",
+                        user.isPremium ? "bg-yellow-500/10 border-yellow-500 text-yellow-500" : "bg-card/50 border-border-dim text-text-muted"
+                      )}>
+                        {user.isPremium ? 'Premium' : 'Free'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-4 border-t border-border-dim/30">
+                      <div className="flex flex-col">
+                        <span className="text-[9px] text-text-muted font-black uppercase tracking-widest">Atividade</span>
+                        <span className="text-xs font-bold text-text-main">{userSubs.length} Subs</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => handleEditClick(user)}
+                          className="p-2.5 bg-card border border-border-dim text-text-muted rounded-xl"
+                        >
+                          <Eye size={16} />
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setUserToDelete(user);
+                            setShowDeleteModal(true);
+                          }}
+                          className="p-2.5 bg-card border border-border-dim text-red-500 rounded-xl"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }) : (
+                <div className="text-center py-10 opacity-50">
+                   <p className="text-[10px] font-black uppercase tracking-widest">Nenhum utilizador</p>
+                </div>
+              )}
+            </div>
+
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
                   <tr className="bg-bg/50 font-black text-[10px] text-text-muted uppercase tracking-[0.2em]">
@@ -840,7 +908,56 @@ const AdminDashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="overflow-x-auto min-h-[400px]">
+        {/* Audit Logs: Mobile Cards + Desktop Table */}
+        <div className="md:hidden space-y-3 p-4">
+          {filteredLogs.length > 0 ? filteredLogs.map(log => (
+            <div key={log.id} className="bg-bg border border-border-dim rounded-2xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className={cn(
+                  "px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-tighter border",
+                  log.action.toLowerCase().includes('delete') ? "bg-red-500/10 border-red-500/20 text-red-500" :
+                  log.action.toLowerCase().includes('create') ? "bg-health/10 border-health/20 text-health" :
+                  "bg-accent/10 border-accent/20 text-accent"
+                )}>
+                  {log.action}
+                </span>
+                <span className="text-[9px] text-text-muted font-bold">
+                  {format(new Date(log.timestamp), 'dd/MM HH:mm', { locale: pt })}
+                </span>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-lg bg-card border border-border-dim flex items-center justify-center text-[8px] font-black text-accent shrink-0">
+                  {log.userId === 'system' ? <Settings size={10} /> : (log.userEmail?.charAt(0) || '?')}
+                </div>
+                <p className="text-[10px] font-black text-text-main truncate">
+                  {log.userId === 'system' ? 'Sistema' : log.userEmail}
+                </p>
+              </div>
+
+              <p className="text-[10px] text-text-muted font-medium bg-card/30 p-3 rounded-xl border border-border-dim/20 leading-relaxed">
+                {log.details}
+              </p>
+
+              {log.targetType === 'user' && (
+                <button 
+                  onClick={() => handleViewTarget(log)}
+                  className="w-full py-2 bg-accent/5 text-accent border border-accent/10 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1"
+                >
+                  <Eye size={12} />
+                  Ver Alvo
+                </button>
+              )}
+            </div>
+          )) : (
+            <div className="text-center py-20 opacity-30">
+               <History size={48} className="mx-auto mb-4" />
+               <p className="text-[10px] font-black uppercase">Sem registos</p>
+            </div>
+          )}
+        </div>
+
+        <div className="hidden md:block overflow-x-auto min-h-[400px]">
           <table className="w-full text-left">
             <thead>
               <tr className="bg-bg/50 font-black text-[10px] text-text-muted uppercase tracking-[0.2em]">
@@ -1064,52 +1181,54 @@ const AdminDashboard: React.FC = () => {
                 </button>
               </div>
               
-              <div className="px-10 pb-10 pt-0">
-                <div className="relative -mt-16 mb-8 flex flex-col items-center sm:items-start sm:flex-row gap-6">
-                  <div className="w-32 h-32 rounded-[2.5rem] bg-card border-4 border-bg overflow-hidden shadow-2xl flex items-center justify-center text-accent text-3xl font-black">
-                    {selectedUser.photoURL ? (
-                      <img src={selectedUser.photoURL} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      (selectedUser.displayName || selectedUser.email).charAt(0).toUpperCase()
-                    )}
-                  </div>
-                  <div className="mt-4 sm:mt-16 text-center sm:text-left flex-1">
-                    {isEditingUser ? (
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black text-text-muted uppercase tracking-widest block ml-1 text-white/60">Nome de Exibição</label>
-                        <input 
-                          type="text"
-                          value={editedUserData.displayName || ''}
-                          onChange={(e) => setEditedUserData({...editedUserData, displayName: e.target.value})}
-                          className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-xl text-lg font-black text-white focus:ring-2 focus:ring-white/30 outline-none"
-                          placeholder="Nome do utilizador..."
-                        />
-                      </div>
-                    ) : (
-                      <h3 className="text-2xl font-black text-text-main tracking-tight leading-tight">
-                        {selectedUser.displayName || 'Utilizador sem Nome'}
-                      </h3>
-                    )}
-                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-2">
-                       <span className="flex items-center gap-1.5 px-3 py-1 bg-bg border border-border-dim rounded-lg text-[9px] font-black text-text-muted uppercase tracking-widest">
-                        <Mail size={12} className="text-accent" />
-                        {selectedUser.email}
-                      </span>
+            <div className="px-4 sm:px-10 pb-10 pt-0">
+              <div className="relative -mt-16 mb-8 flex flex-col items-center sm:items-start sm:flex-row gap-6">
+                <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-[2rem] sm:rounded-[2.5rem] bg-card border-4 border-bg overflow-hidden shadow-2xl flex items-center justify-center text-accent text-3xl font-black">
+                  {selectedUser.photoURL ? (
+                    <img src={selectedUser.photoURL} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    (selectedUser.displayName || selectedUser.email).charAt(0).toUpperCase()
+                  )}
+                </div>
+                <div className="mt-4 sm:mt-16 text-center sm:text-left flex-1 min-w-0">
+                  {isEditingUser ? (
+                    <div className="space-y-2 w-full">
+                      <label className="text-[10px] font-black text-text-muted uppercase tracking-widest block ml-1">Nome de Exibição</label>
+                      <input 
+                        type="text"
+                        value={editedUserData.displayName || ''}
+                        onChange={(e) => setEditedUserData({...editedUserData, displayName: e.target.value})}
+                        className="w-full px-4 py-2 bg-bg border border-border-dim rounded-xl text-lg font-black text-text-main focus:ring-2 focus:ring-accent outline-none"
+                        placeholder="Nome do utilizador..."
+                      />
+                    </div>
+                  ) : (
+                    <h3 className="text-xl sm:text-2xl font-black text-text-main tracking-tight leading-tight truncate">
+                      {selectedUser.displayName || 'Utilizador sem Nome'}
+                    </h3>
+                  )}
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-2">
+                     <span className="flex items-center gap-1.5 px-3 py-1 bg-bg border border-border-dim rounded-lg text-[9px] font-black text-text-muted uppercase tracking-widest truncate max-w-[200px]">
+                      <Mail size={12} className="text-accent shrink-0" />
+                      {selectedUser.email}
+                    </span>
+                    <div className="flex gap-2">
                       {selectedUser.isAdmin && (
-                        <span className="flex items-center gap-1 px-3 py-1 bg-accent/10 border border-accent/20 rounded-lg text-[9px] font-black text-accent uppercase tracking-widest">
-                          <Shield size={10} /> Admin Access
+                        <span className="flex items-center gap-1 px-2 py-1 bg-accent/10 border border-accent/20 rounded-lg text-[8px] font-black text-accent uppercase tracking-widest leading-none">
+                          <Shield size={10} /> Admin
                         </span>
                       )}
                       {selectedUser.isPremium && (
-                        <span className="flex items-center gap-1 px-3 py-1 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-[9px] font-black text-yellow-500 uppercase tracking-widest">
-                          <Star size={10} /> Premium Member
+                        <span className="flex items-center gap-1 px-2 py-1 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-[8px] font-black text-yellow-500 uppercase tracking-widest leading-none">
+                          <Star size={10} /> Premium
                         </span>
                       )}
                     </div>
                   </div>
                 </div>
+              </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-6">
                     <div className="space-y-4">
                       <div className="flex items-center gap-2 text-accent">
@@ -1226,19 +1345,19 @@ const AdminDashboard: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="mt-10 flex gap-4">
+                <div className="mt-10 flex flex-col sm:flex-row gap-3 sm:gap-4">
                    {isEditingUser ? (
                      <>
                       <button 
                         onClick={() => setIsEditingUser(false)}
-                        className="flex-1 px-8 py-5 bg-bg border border-border-dim rounded-2xl text-[10px] font-black text-text-muted hover:border-text-muted transition-all uppercase tracking-widest"
+                        className="w-full sm:flex-1 px-6 sm:px-8 py-4 sm:py-5 bg-bg border border-border-dim rounded-2xl text-[10px] font-black text-text-muted hover:border-text-muted transition-all uppercase tracking-widest"
                       >
                         Cancelar
                       </button>
                       <button 
                         onClick={handleSaveUserEdits}
                         disabled={loading}
-                        className="flex-1 px-8 py-5 bg-accent text-white rounded-2xl text-[10px] font-black hover:bg-accent/90 transition-all uppercase tracking-widest shadow-lg shadow-accent/20"
+                        className="w-full sm:flex-1 px-6 sm:px-8 py-4 sm:py-5 bg-accent text-white rounded-2xl text-[10px] font-black hover:bg-accent/90 transition-all uppercase tracking-widest shadow-lg shadow-accent/20"
                       >
                         {loading ? "A Guardar..." : "Guardar Alterações"}
                       </button>
@@ -1256,15 +1375,15 @@ const AdminDashboard: React.FC = () => {
                             });
                             setIsEditingUser(true);
                           }}
-                          className="flex-1 px-8 py-5 bg-bg border border-border-dim rounded-2xl text-[10px] font-black text-text-main hover:border-accent transition-all uppercase tracking-widest"
+                          className="w-full sm:flex-1 px-6 sm:px-8 py-4 sm:py-5 bg-bg border border-border-dim rounded-2xl text-[10px] font-black text-text-main hover:border-accent transition-all uppercase tracking-widest"
                         >
                           Editar Perfil
                         </button>
                         <button 
                           onClick={() => handleResetPassword(selectedUser.email)}
-                          className="flex-1 px-8 py-5 bg-bg border border-border-dim rounded-2xl text-[10px] font-black text-text-main hover:border-accent transition-all uppercase tracking-widest"
+                          className="w-full sm:flex-1 px-6 sm:px-8 py-4 sm:py-5 bg-bg border border-border-dim rounded-2xl text-[10px] font-black text-text-main hover:border-accent transition-all uppercase tracking-widest"
                         >
-                          Reset Password
+                          Reset Pass
                         </button>
                         <button 
                           onClick={() => {
@@ -1272,7 +1391,7 @@ const AdminDashboard: React.FC = () => {
                             setUserToDelete(selectedUser);
                             setShowDeleteModal(true);
                           }}
-                          className="flex-1 px-8 py-5 bg-red-500 text-white rounded-2xl text-[10px] font-black hover:bg-red-600 transition-all uppercase tracking-widest shadow-lg shadow-red-500/20"
+                          className="w-full sm:flex-1 px-6 sm:px-8 py-4 sm:py-5 bg-red-500 text-white rounded-2xl text-[10px] font-black hover:bg-red-600 transition-all uppercase tracking-widest shadow-lg shadow-red-500/20"
                         >
                           Terminar Conta
                         </button>
