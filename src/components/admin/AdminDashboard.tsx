@@ -6,7 +6,7 @@ import {
   Users, CreditCard, Activity, ShieldCheck, Mail, LogIn, 
   Download, Trash2, AlertTriangle, Search, Filter, Shield, 
   Star, Eye, MoreVertical, MapPin, Info, CheckCircle, X, ChevronRight,
-  Zap, Clock, Globe, BarChart3, Bell, History, ArrowUpRight
+  Zap, Clock, Globe, BarChart3, Bell, History, ArrowUpRight, Settings
 } from 'lucide-react';
 import { format, subMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { pt } from 'date-fns/locale';
@@ -20,13 +20,68 @@ import { updateUserProfile, deleteUserProfile, subscribeToAllUsers } from '../..
 import { cn } from '../../lib/utils';
 import { AuditLog, SystemNotice, AppConfig } from '../../types';
 import { getAppConfig, updateAppConfig, subscribeToAppConfig } from '../../services/configService';
+import { subscribeToLogs } from '../../services/auditService';
 
 const AdminDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'users' | 'analytics' | 'system'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'analytics' | 'system' | 'logs'>('users');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [logFilter, setLogFilter] = useState<'all' | 'create' | 'delete' | 'update' | 'system'>('all');
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [allSubscriptions, setAllSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionStatus, setActionStatus] = useState<{message: string, type: 'success' | 'error'} | null>(null);
+
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  
+  // Helper for CSV Export
+  const exportLogsToCSV = (logs: AuditLog[]) => {
+    const headers = ['Timestamp', 'Acao', 'Responsavel', 'ID Responsavel', 'Alvo', 'Detalhes'];
+    const rows = logs.map(log => [
+      log.timestamp,
+      log.action,
+      log.userId === 'system' ? 'Sistema' : log.userEmail,
+      log.userId,
+      `${log.targetType}/${log.targetId}`,
+      log.details.replace(/,/g, ';')
+    ]);
+
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `audit_logs_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Helper to view target user
+  const handleViewTarget = (log: AuditLog) => {
+    if (log.targetType === 'user') {
+      setSearchTerm(log.targetId);
+      setActiveTab('users');
+    }
+  };
+
+  const filteredLogs = auditLogs.filter(log => {
+    const term = searchTerm.toLowerCase();
+    const matchesSearch = 
+      (log.userEmail || '').toLowerCase().includes(term) || 
+      log.action.toLowerCase().includes(term) ||
+      log.details.toLowerCase().includes(term) ||
+      log.targetId.toLowerCase().includes(term);
+    
+    const actionLower = log.action.toLowerCase();
+    const matchesFilter = logFilter === 'all' || 
+                         (logFilter === 'create' && actionLower.includes('create')) ||
+                         (logFilter === 'delete' && actionLower.includes('delete')) ||
+                         (logFilter === 'update' && actionLower.includes('update')) ||
+                         (logFilter === 'system' && (log.userId === 'system' || actionLower.includes('system')));
+    
+    return matchesSearch && matchesFilter;
+  });
   
   // System State
   const [appConfig, setAppConfig] = useState<AppConfig>({
@@ -42,7 +97,6 @@ const AdminDashboard: React.FC = () => {
     active: false,
     updatedAt: new Date().toISOString()
   });
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
 
   // Analytics helper
   const chartData = useMemo(() => {
@@ -73,7 +127,6 @@ const AdminDashboard: React.FC = () => {
   }, [allSubscriptions, users]);
   
   // Search and Filter State
-  const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'admin' | 'premium'>('all');
   
   // Modals State
@@ -238,10 +291,15 @@ const AdminDashboard: React.FC = () => {
       setAppConfig(newConfig);
     });
 
+    const unsubLogs = subscribeToLogs((newLogs) => {
+      setAuditLogs(newLogs);
+    });
+
     return () => {
       unsubUsers();
       unsubSubs();
       unsubConfig();
+      unsubLogs();
     };
   }, []);
 
@@ -326,6 +384,16 @@ const AdminDashboard: React.FC = () => {
         >
           <BarChart3 size={16} />
           Insights
+        </button>
+        <button
+          onClick={() => setActiveTab('logs')}
+          className={cn(
+            "flex items-center gap-2 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all",
+            activeTab === 'logs' ? "bg-accent text-white shadow-lg shadow-accent/20" : "text-text-muted hover:bg-bg"
+          )}
+        >
+          <History size={16} />
+          Logs
         </button>
         <button
           onClick={() => setActiveTab('system')}
@@ -674,32 +742,187 @@ const AdminDashboard: React.FC = () => {
           <div className="lg:col-span-2 bg-card border border-border-dim p-8 rounded-[3rem]">
             <h4 className="text-sm font-black uppercase tracking-widest mb-6 flex items-center gap-2">
               <History size={16} className="text-accent" />
-              Recent Audit Events
+              Live Audit Trail
             </h4>
             <div className="space-y-3">
-              {[
-                { action: 'Admin Role Granted', target: 'user_882', time: 'Há 2 horas', by: 'ruipina' },
-                { action: 'Premium Activated', target: 'user_412', time: 'Há 5 horas', by: 'System' },
-                { action: 'User Purgued', target: 'user_dead', time: 'Ontem', by: 'ruipina' }
-              ].map((log, i) => (
-                <div key={i} className="flex items-center justify-between p-4 bg-bg rounded-2xl border border-border-dim/50 hover:border-accent/30 transition-all">
+              {auditLogs.slice(0, 5).map((log, i) => (
+                <div key={log.id} className="flex items-center justify-between p-4 bg-bg rounded-2xl border border-border-dim/50 hover:border-accent/30 transition-all">
                   <div className="flex items-center gap-4">
                     <div className="w-8 h-8 rounded-lg bg-card flex items-center justify-center text-accent">
-                      <Shield size={14} />
+                      <Zap size={14} />
                     </div>
                     <div>
                       <p className="text-xs font-black text-text-main">{log.action}</p>
-                      <p className="text-[9px] text-text-muted font-bold uppercase mt-1">Target: {log.target}</p>
+                      <p className="text-[9px] text-text-muted font-bold uppercase mt-1">Target: {log.targetType}/{log.targetId}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] font-black text-text-main uppercase">{log.by}</p>
-                    <p className="text-[9px] text-text-muted font-bold mt-1">{log.time}</p>
+                    <p className="text-[10px] font-black text-text-main uppercase truncate max-w-[120px]">
+                      {log.userId === 'system' ? 'Sistema' : (log.userEmail?.split('@')[0] || 'Desconhecido')}
+                    </p>
+                    <p className="text-[9px] text-text-muted font-bold mt-1">
+                      {format(new Date(log.timestamp), 'HH:mm', { locale: pt })}
+                    </p>
                   </div>
                 </div>
               ))}
+              {auditLogs.length === 0 && (
+                <div className="text-center py-10 opacity-30">
+                  <History size={32} className="mx-auto mb-2" />
+                  <p className="text-[10px] font-black uppercase">Nenhum evento recente</p>
+                </div>
+              )}
             </div>
+            {auditLogs.length > 0 && (
+              <button 
+                onClick={() => setActiveTab('logs')}
+                className="w-full mt-4 py-3 text-[9px] font-black uppercase tracking-widest text-accent hover:bg-accent/5 rounded-xl transition-all"
+              >
+                Ver Histórico Completo
+              </button>
+            )}
           </div>
+        </div>
+      </motion.div>
+    )}
+
+    {activeTab === 'logs' && (
+      <motion.div
+        key="logs-tab"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        className="bg-card border border-border-dim rounded-[3rem] overflow-hidden shadow-sm"
+      >
+        <div className="p-8 border-b border-border-dim flex flex-col md:flex-row md:items-center justify-between gap-4 bg-bg/20">
+          <div>
+            <div className="flex items-center gap-3">
+              <h3 className="text-xl font-black text-text-main tracking-tight leading-none uppercase">Auditoria de Sistema</h3>
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-accent/10 border border-accent/20">
+                <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+                <span className="text-[8px] font-black uppercase text-accent tracking-tighter">Live</span>
+              </div>
+            </div>
+            <p className="text-[10px] text-text-muted font-bold uppercase tracking-widest mt-2">Histórico de ações críticas e eventos em tempo real</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+              <input 
+                type="text" 
+                placeholder="Pesquisar logs..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 pr-4 py-2.5 bg-bg border border-border-dim rounded-xl text-[10px] font-bold uppercase tracking-widest focus:border-accent outline-none w-48"
+              />
+            </div>
+            <select 
+              value={logFilter}
+              onChange={(e) => setLogFilter(e.target.value as any)}
+              className="px-4 py-2.5 bg-bg border border-border-dim rounded-xl text-[10px] font-bold uppercase tracking-widest focus:border-accent outline-none appearance-none cursor-pointer hover:border-accent transition-all"
+            >
+              <option value="all">Todas as Ações</option>
+              <option value="create">Criações</option>
+              <option value="delete">Eliminações</option>
+              <option value="update">Updates</option>
+              <option value="system">Sistema</option>
+            </select>
+            <button 
+              onClick={() => exportLogsToCSV(filteredLogs)}
+              className="p-2.5 bg-accent/5 text-accent border border-accent/10 rounded-xl hover:bg-accent hover:text-white transition-all group relative"
+              title="Exportar para CSV"
+            >
+              <Download size={18} />
+              <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-black text-white text-[8px] font-bold rounded opacity-0 group-hover:opacity-100 whitespace-nowrap transition-opacity pointer-events-none">
+                Exportar CSV
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto min-h-[400px]">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-bg/50 font-black text-[10px] text-text-muted uppercase tracking-[0.2em]">
+                <th className="px-10 py-5">Timestamp</th>
+                <th className="px-10 py-5">Ação</th>
+                <th className="px-10 py-5">Responsável</th>
+                <th className="px-10 py-5">Detalhes</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border-dim">
+              {filteredLogs.length > 0 ? filteredLogs.map(log => (
+                <tr key={log.id} className="hover:bg-bg/40 transition-colors group">
+                  <td className="px-10 py-6 whitespace-nowrap">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-black text-text-main">
+                        {format(new Date(log.timestamp), 'dd MMM HH:mm:ss', { locale: pt })}
+                      </span>
+                      <span className="text-[9px] text-text-muted uppercase font-bold tracking-tight">ISO: {log.timestamp.split('T')[1].split('.')[0]}</span>
+                    </div>
+                  </td>
+                  <td className="px-10 py-6">
+                    <span className={cn(
+                      "px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border",
+                      log.action.toLowerCase().includes('delete') ? "bg-red-500/10 border-red-500/20 text-red-500 shadow-sm shadow-red-500/10" :
+                      log.action.toLowerCase().includes('create') ? "bg-health/10 border-health/20 text-health" :
+                      "bg-accent/10 border-accent/20 text-accent"
+                    )}>
+                      {log.action}
+                    </span>
+                  </td>
+                  <td className="px-10 py-6">
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "w-8 h-8 rounded-xl border flex items-center justify-center text-[10px] font-black uppercase",
+                        log.userId === 'system' ? "bg-bg border-border-dim text-text-muted" : "bg-bg border-border-dim text-accent"
+                      )}>
+                        {log.userId === 'system' ? <Settings size={12} /> : (log.userEmail?.charAt(0) || '?')}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-black text-text-main truncate max-w-[150px]">
+                          {log.userId === 'system' ? 'Sistema' : log.userEmail}
+                        </p>
+                        {log.userId !== 'system' && (
+                          <p className="text-[9px] text-text-muted font-bold uppercase">ID: {log.userId.slice(0, 8)}...</p>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-10 py-6">
+                    <div className="flex items-center justify-between gap-4">
+                      <p className="text-xs font-medium text-text-muted leading-relaxed max-w-sm">
+                        {log.details}
+                        {log.metadata && Object.keys(log.metadata).length > 0 && (
+                          <span className="block mt-1 text-[9px] font-black text-accent/60 uppercase">
+                            Fields: {log.metadata.fields?.join(', ') || 'Object Data'}
+                          </span>
+                        )}
+                      </p>
+                      {log.targetType === 'user' && (
+                        <button 
+                          onClick={() => handleViewTarget(log)}
+                          className="p-2 opacity-0 group-hover:opacity-100 bg-accent/5 text-accent rounded-lg hover:bg-accent hover:text-white transition-all flex items-center gap-1 text-[9px] font-black uppercase"
+                        >
+                          <Eye size={12} />
+                          Ver Alvo
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan={4} className="px-10 py-32 text-center">
+                    <div className="flex flex-col items-center opacity-30">
+                      <History size={64} className="text-text-muted mb-6" />
+                      <p className="text-sm font-black text-text-muted uppercase tracking-[0.3em]">Nenhum registo de auditoria disponível</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </motion.div>
     )}

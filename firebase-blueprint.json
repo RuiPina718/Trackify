@@ -78,6 +78,23 @@
         "lastSyncedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "subscriptionId", "googleEventId"]
+    },
+    "AuditLog": {
+      "title": "Audit Log",
+      "description": "System and user activities log for administrators.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "action": { "type": "string" },
+        "targetId": { "type": "string" },
+        "targetType": { "type": "string" },
+        "details": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "metadata": { "type": "object" }
+      },
+      "required": ["action", "timestamp"]
     }
   },
   "firestore": {
@@ -100,6 +117,10 @@
     "/calendar_events/{eventId}": {
       "schema": "CalendarEvent",
       "description": "Subscription to Google Event mappings"
+    },
+    "/audit_logs/{logId}": {
+      "schema": "AuditLog",
+      "description": "Admin audit trails"
     }
   }
 }

@@ -15,6 +15,7 @@ import {
 } from 'firebase/firestore';
 import { db, OperationType, handleFirestoreError } from '../lib/firebase';
 import { Subscription } from '../types';
+import { createLog } from './auditService';
 
 const COLLECTION_NAME = 'subscriptions';
 
@@ -73,6 +74,8 @@ export const createSubscription = async (data: Omit<Subscription, 'id' | 'create
     // Trigger background calendar sync
     triggerCalendarSync(data.userId, docRef.id).catch(console.error);
     
+    await createLog('Subscription Created', docRef.id, 'subscription', `Nova subscrição adicionada: ${data.name}`);
+    
     return docRef.id;
   } catch (error) {
     handleFirestoreError(error, OperationType.CREATE, COLLECTION_NAME);
@@ -89,6 +92,8 @@ export const updateSubscription = async (id: string, userId: string, data: Parti
     
     // Trigger background calendar sync
     triggerCalendarSync(userId, id).catch(console.error);
+
+    await createLog('Subscription Updated', id, 'subscription', `Subscrição atualizada: ${data.name || 'Alteração de dados'}`, { fields: Object.keys(data) });
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, `${COLLECTION_NAME}/${id}`);
   }
@@ -129,6 +134,8 @@ export const deleteSubscription = async (id: string, userId: string) => {
     
     // Trigger background calendar event deletion
     triggerCalendarDelete(userId, id).catch(console.error);
+    
+    await createLog('Subscription Deleted', id, 'subscription', 'Subscrição removida definitivamente');
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, `${COLLECTION_NAME}/${id}`);
     throw error;

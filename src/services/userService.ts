@@ -15,6 +15,7 @@ import { db } from '../lib/firebase';
 import { UserProfile } from '../types';
 import { deleteAllUserSubscriptions } from './subscriptionService';
 import { deleteAllUserCategories } from './categoryService';
+import { createLog } from './auditService';
 
 /**
  * Removes undefined values from an object to prevent Firestore errors.
@@ -54,11 +55,13 @@ export const createUserProfile = async (profile: UserProfile): Promise<void> => 
   }
   
   await setDoc(doc(db, 'users', profile.uid), cleanObject(profile));
+  await createLog('User Created', profile.uid, 'user', `Novo utilizador registado: ${profile.email}`);
 };
 
 export const updateUserProfile = async (uid: string, data: Partial<UserProfile>): Promise<void> => {
   const docRef = doc(db, 'users', uid);
   await setDoc(docRef, cleanObject(data), { merge: true });
+  await createLog('User Updated', uid, 'user', `Perfil de utilizador atualizado`, { fields: Object.keys(data) });
 };
 
 export const deleteUserProfile = async (uid: string): Promise<void> => {
@@ -73,6 +76,8 @@ export const deleteUserProfile = async (uid: string): Promise<void> => {
     // 4. Delete user profile document
     const docRef = doc(db, 'users', uid);
     await deleteDoc(docRef);
+    
+    await createLog('User Deleted', uid, 'user', 'Conta de utilizador e todos os dados associados foram removidos');
   } catch (error) {
     console.error('Error deleting user profile:', error);
     throw error;

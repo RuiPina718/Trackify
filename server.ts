@@ -100,6 +100,7 @@ app.get('/api/debug/redirect-uri', (req, res) => {
 
 app.get('/api/auth/google/url', (req, res) => {
   const redirectUri = getRedirectUri(req);
+  console.log('Generating Google Auth URL with Redirect URI:', redirectUri);
   const authUrl = oauth2Client.generateAuthUrl({
     access_type: 'offline', // Required to get a refresh token
     scope: SCOPES,

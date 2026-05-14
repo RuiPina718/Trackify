@@ -44,11 +44,14 @@ export interface UserProfile {
 
 export interface AuditLog {
   id: string;
+  userId: string;
+  userEmail: string;
   action: string;
-  performedBy: string;
   targetId: string;
+  targetType: string;
+  details: string;
   timestamp: string;
-  details?: string;
+  metadata?: Record<string, any>;
 }
 
 export interface SystemNotice {

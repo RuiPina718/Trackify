@@ -93,5 +93,12 @@ service cloud.firestore {
       allow read, write: if true; // Backend needs full access to sync
     }
 
+    // --- Audit Logs ---
+    match /audit_logs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn(); // Users log their own actions, then restricted
+      allow update, delete: if false; // Logs are immutable
+    }
+
   }
 }

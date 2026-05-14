@@ -6,6 +6,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { AppConfig } from '../types';
+import { createLog } from './auditService';
 
 const CONFIG_DOC_ID = 'main';
 const COLLECTION_NAME = 'config';
@@ -36,6 +37,15 @@ export const updateAppConfig = async (data: Partial<AppConfig>): Promise<void> =
     ...data, 
     updatedAt: new Date().toISOString() 
   }, { merge: true });
+  
+  if (data.maintenanceMode !== undefined) {
+    await createLog(
+      'System Mode Changed', 
+      'system', 
+      'config', 
+      `Modo manutenção ${data.maintenanceMode ? 'ativado' : 'desativado'}`
+    );
+  }
 };
 
 export const subscribeToAppConfig = (callback: (config: AppConfig) => void) => {
