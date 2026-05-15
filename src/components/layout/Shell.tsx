@@ -177,7 +177,12 @@ export default function Shell({ user, userProfile }: ShellProps) {
         <div className="p-8 flex items-center justify-between">
           <button 
             onClick={() => {
-              setActiveView('dashboard');
+              if (activeView === 'dashboard') {
+                const contentArea = document.querySelector('.overflow-y-auto.bg-bg');
+                if (contentArea) contentArea.scrollTo({ top: 0, behavior: 'smooth' });
+              } else {
+                setActiveView('dashboard');
+              }
               setIsSidebarOpen(false);
             }}
             className="text-2xl font-bold tracking-tight text-accent flex items-center gap-3 hover:opacity-80 transition-opacity active:scale-95 group"
@@ -278,13 +283,24 @@ export default function Shell({ user, userProfile }: ShellProps) {
           </div>
 
           {/* LOGO - True absolute center */}
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-            <div className="flex items-center gap-x-2 group cursor-pointer pointer-events-auto" onClick={() => setActiveView('dashboard')}>
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg overflow-hidden border border-accent/20 shadow-lg shadow-accent/5 transition-transform group-hover:scale-105">
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[60]">
+            <button 
+              className="flex items-center gap-x-2 group cursor-pointer focus:outline-none transition-transform active:scale-95" 
+              onClick={() => {
+                if (activeView === 'dashboard') {
+                  const contentArea = document.querySelector('.overflow-y-auto.bg-bg');
+                  if (contentArea) contentArea.scrollTo({ top: 0, behavior: 'smooth' });
+                } else {
+                  setActiveView('dashboard');
+                }
+              }}
+              aria-label="Ir para o Dashboard"
+            >
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg overflow-hidden border border-accent/20 shadow-lg shadow-accent/5 transition-transform group-hover:scale-105 group-active:scale-95">
                 <img src="/logo.png?v=1.3" alt="Logo" className="w-full h-full object-cover" />
               </div>
               <span className="font-display lowercase tracking-tight text-lg sm:text-xl text-text-main font-bold">trackify.</span>
-            </div>
+            </button>
           </div>
 
           {/* Right Side */}

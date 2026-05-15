@@ -26,6 +26,20 @@ export interface NotificationPreferences {
   spendingLimit?: number;
 }
 
+export interface DashboardConfig {
+  sections: {
+    monthlyExpense: boolean;
+    budget: boolean;
+    categories: boolean;
+    insights: boolean;
+    indicators: boolean;
+    upcoming: boolean;
+    topSpending: boolean;
+    cycleBreakdown: boolean;
+    calendar: boolean;
+  };
+}
+
 export interface UserProfile {
   uid: string;
   email: string;
@@ -40,6 +54,7 @@ export interface UserProfile {
   location?: string;
   isAdmin?: boolean;
   isPremium?: boolean;
+  dashboardConfig?: DashboardConfig;
 }
 
 export interface AuditLog {

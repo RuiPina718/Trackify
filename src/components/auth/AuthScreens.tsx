@@ -126,12 +126,13 @@ export default function AuthScreens() {
       {/* Left Side: Brand & Hero (Visible on Desktop) */}
       <div className="hidden md:flex md:w-[60%] bg-bg relative p-16 flex-col justify-between border-r border-border-dim">
         <div className="relative z-10">
-          <motion.div 
+          <motion.button 
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="flex items-center gap-2 mb-12"
+            onClick={() => setIsLogin(true)}
+            className="flex items-center gap-2 mb-12 hover:opacity-80 transition-opacity active:scale-95 group focus:outline-none"
           >
-            <div className="relative w-12 h-12 rounded-xl overflow-hidden shadow-lg border border-border-dim">
+            <div className="relative w-12 h-12 rounded-xl overflow-hidden shadow-lg border border-border-dim group-hover:scale-105 transition-transform">
               <img 
                 src="/logo.png?v=1.3" 
                 alt="Trackify Logo" 
@@ -140,7 +141,7 @@ export default function AuthScreens() {
               />
             </div>
             <h1 className="text-4xl font-bold tracking-tight text-text-main font-display lowercase">trackify.</h1>
-          </motion.div>
+          </motion.button>
 
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -191,8 +192,11 @@ export default function AuthScreens() {
       {/* Right Side: Auth Form */}
       <div className="flex-1 flex flex-col items-center justify-center p-6 md:p-12 relative">
         {/* Mobile Logo */}
-        <div className="md:hidden mb-12 flex flex-col items-center">
-          <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-lg shadow-accent/20 mb-4 border border-border-dim">
+        <button 
+          onClick={() => setIsLogin(true)}
+          className="md:hidden mb-12 flex flex-col items-center hover:opacity-80 transition-opacity active:scale-95 group focus:outline-none"
+        >
+          <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-lg shadow-accent/20 mb-4 border border-border-dim group-hover:scale-105 transition-transform">
             <img 
               src="/logo.png?v=1.3" 
               alt="Trackify Logo" 
@@ -201,7 +205,7 @@ export default function AuthScreens() {
             />
           </div>
           <h1 className="text-3xl font-bold tracking-tighter text-text-main font-display lowercase">trackify.</h1>
-        </div>
+        </button>
 
         <motion.div 
           layout
