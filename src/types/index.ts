@@ -1,4 +1,4 @@
-export type BillingCycle = 'monthly' | 'annual' | 'weekly' | 'yearly';
+export type BillingCycle = 'monthly' | 'annual' | 'weekly' | 'yearly' | 'biweekly';
 export type SubscriptionStatus = 'active' | 'cancelled';
 
 export interface Subscription {

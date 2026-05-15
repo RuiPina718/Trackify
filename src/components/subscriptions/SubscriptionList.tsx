@@ -25,14 +25,6 @@ interface SubscriptionListProps {
   currency?: string;
 }
 
-const getMonthName = (month: number) => {
-  const months = [
-    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-  ];
-  return months[month - 1] || '';
-};
-
 export default function SubscriptionList({ userId, onEdit, currency = 'EUR' }: SubscriptionListProps) {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const { categories } = useUnifiedCategories(userId);
@@ -210,6 +202,8 @@ export default function SubscriptionList({ userId, onEdit, currency = 'EUR' }: S
                     <option value="all">TODOS</option>
                     <option value="monthly">MENSAL</option>
                     <option value="yearly">ANUAL</option>
+                    <option value="biweekly">QUINZENAL</option>
+                    <option value="weekly">SEMANAL</option>
                   </select>
                   <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
                 </div>
@@ -283,7 +277,9 @@ export default function SubscriptionList({ userId, onEdit, currency = 'EUR' }: S
                     <p className="micro-label mb-2 lg:mb-3">Valor / Período</p>
                     <p className="text-3xl lg:text-4xl font-bold text-text-main tracking-tighter tabular-nums font-display">
                       {formatCurrency(sub.amount, sub.currency || currency)}
-                      <span className="text-[10px] text-text-muted ml-1.5 lg:ml-2 font-bold uppercase tracking-widest opacity-40">/{sub.billingCycle === 'monthly' ? 'mês' : 'ano'}</span>
+                      <span className="text-[10px] text-text-muted ml-1.5 lg:ml-2 font-bold uppercase tracking-widest opacity-40">
+                        /{sub.billingCycle === 'monthly' ? 'mês' : sub.billingCycle === 'weekly' ? 'sem' : sub.billingCycle === 'biweekly' ? 'quin' : 'ano'}
+                      </span>
                     </p>
                   </div>
                 </div>
@@ -292,12 +288,31 @@ export default function SubscriptionList({ userId, onEdit, currency = 'EUR' }: S
                   <div>
                     <p className="micro-label mb-1">Próxima Cobrança</p>
                     <p className="text-xs lg:text-sm font-bold text-text-main uppercase tracking-tight">
-                      Dia {sub.billingDay}
-                      {(sub.billingCycle === 'yearly' || sub.billingCycle === 'annual') && sub.billingMonth && (
-                        <span className="text-accent ml-1.5">
-                          {getMonthName(sub.billingMonth).toUpperCase()}
-                        </span>
-                      )}
+                      {(() => {
+                        const now = new Date();
+                        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                        let nextDate: Date;
+                        
+                        if (sub.billingCycle === 'yearly' || sub.billingCycle === 'annual') {
+                          const month = (sub.billingMonth || 1) - 1;
+                          nextDate = new Date(today.getFullYear(), month, sub.billingDay);
+                          if (nextDate < today) nextDate.setFullYear(today.getFullYear() + 1);
+                          return nextDate.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' });
+                        } else if (sub.billingCycle === 'monthly') {
+                          nextDate = new Date(today.getFullYear(), today.getMonth(), sub.billingDay);
+                          if (nextDate < today) nextDate.setMonth(nextDate.getMonth() + 1);
+                          return nextDate.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' });
+                        } else {
+                          nextDate = new Date(today.getFullYear(), today.getMonth(), sub.billingDay);
+                          if (nextDate < today) {
+                            const daysToAdd = sub.billingCycle === 'weekly' ? 7 : 14;
+                            while (nextDate < today) {
+                              nextDate.setDate(nextDate.getDate() + daysToAdd);
+                            }
+                          }
+                          return nextDate.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' });
+                        }
+                      })()}
                     </p>
                   </div>
                   <div className="text-right">

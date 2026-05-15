@@ -311,6 +311,7 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
                         >
                           <option value="monthly">Mensal</option>
                           <option value="yearly">Anual</option>
+                          <option value="biweekly">Quinzenal</option>
                           <option value="weekly">Semanal</option>
                         </select>
                         <ChevronDown size={14} className="absolute right-5 sm:right-6 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
