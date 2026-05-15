@@ -57,14 +57,6 @@ const AdminDashboard: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  // Helper to view target user
-  const handleViewTarget = (log: AuditLog) => {
-    if (log.targetType === 'user') {
-      setSearchTerm(log.targetId);
-      setActiveTab('users');
-    }
-  };
-
   const filteredLogs = auditLogs.filter(log => {
     const term = searchTerm.toLowerCase();
     const matchesSearch = 
@@ -938,16 +930,6 @@ const AdminDashboard: React.FC = () => {
               <p className="text-[10px] text-text-muted font-medium bg-card/30 p-3 rounded-xl border border-border-dim/20 leading-relaxed">
                 {log.details}
               </p>
-
-              {log.targetType === 'user' && (
-                <button 
-                  onClick={() => handleViewTarget(log)}
-                  className="w-full py-2 bg-accent/5 text-accent border border-accent/10 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1"
-                >
-                  <Eye size={12} />
-                  Ver Alvo
-                </button>
-              )}
             </div>
           )) : (
             <div className="text-center py-20 opacity-30">
@@ -961,9 +943,9 @@ const AdminDashboard: React.FC = () => {
           <table className="w-full text-left">
             <thead>
               <tr className="bg-bg/50 font-black text-[10px] text-text-muted uppercase tracking-[0.2em]">
-                <th className="px-10 py-5">Timestamp</th>
-                <th className="px-10 py-5">Ação</th>
-                <th className="px-10 py-5">Responsável</th>
+                <th className="px-10 py-5 w-px whitespace-nowrap">Timestamp</th>
+                <th className="px-10 py-5 w-px whitespace-nowrap">Ação</th>
+                <th className="px-10 py-5 w-px whitespace-nowrap">Responsável</th>
                 <th className="px-10 py-5">Detalhes</th>
               </tr>
             </thead>
@@ -978,9 +960,9 @@ const AdminDashboard: React.FC = () => {
                       <span className="text-[9px] text-text-muted uppercase font-bold tracking-tight">ISO: {log.timestamp.split('T')[1].split('.')[0]}</span>
                     </div>
                   </td>
-                  <td className="px-10 py-6">
+                  <td className="px-10 py-6 whitespace-nowrap">
                     <span className={cn(
-                      "px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border",
+                      "px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border inline-block whitespace-nowrap",
                       log.action.toLowerCase().includes('delete') ? "bg-red-500/10 border-red-500/20 text-red-500 shadow-sm shadow-red-500/10" :
                       log.action.toLowerCase().includes('create') ? "bg-health/10 border-health/20 text-health" :
                       "bg-accent/10 border-accent/20 text-accent"
@@ -988,16 +970,16 @@ const AdminDashboard: React.FC = () => {
                       {log.action}
                     </span>
                   </td>
-                  <td className="px-10 py-6">
+                  <td className="px-10 py-6 whitespace-nowrap">
                     <div className="flex items-center gap-3">
                       <div className={cn(
-                        "w-8 h-8 rounded-xl border flex items-center justify-center text-[10px] font-black uppercase",
+                        "w-8 h-8 rounded-xl border flex items-center justify-center text-[10px] font-black uppercase shrink-0",
                         log.userId === 'system' ? "bg-bg border-border-dim text-text-muted" : "bg-bg border-border-dim text-accent"
                       )}>
                         {log.userId === 'system' ? <Settings size={12} /> : (log.userEmail?.charAt(0) || '?')}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs font-black text-text-main truncate max-w-[150px]">
+                        <p className="text-xs font-black text-text-main">
                           {log.userId === 'system' ? 'Sistema' : log.userEmail}
                         </p>
                         {log.userId !== 'system' && (
@@ -1016,15 +998,6 @@ const AdminDashboard: React.FC = () => {
                           </span>
                         )}
                       </p>
-                      {log.targetType === 'user' && (
-                        <button 
-                          onClick={() => handleViewTarget(log)}
-                          className="p-2 opacity-0 group-hover:opacity-100 bg-accent/5 text-accent rounded-lg hover:bg-accent hover:text-white transition-all flex items-center gap-1 text-[9px] font-black uppercase"
-                        >
-                          <Eye size={12} />
-                          Ver Alvo
-                        </button>
-                      )}
                     </div>
                   </td>
                 </tr>
