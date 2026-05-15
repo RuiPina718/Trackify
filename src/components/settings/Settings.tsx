@@ -582,7 +582,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
   return (
     <div className="max-w-4xl mx-auto pb-20">
       <div className="mb-10">
-        <h2 className="text-4xl font-black text-text-main tracking-tighter">Definições</h2>
+        <h2 className="text-4xl font-bold text-text-main tracking-tighter">Definições</h2>
         <p className="text-text-muted font-bold text-xs uppercase tracking-[0.2em] mt-2">Personaliza a tua experiência no Trackify</p>
       </div>
 
@@ -594,8 +594,8 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
               {tabs.find(t => t.id === activeTab)?.icon && React.createElement(tabs.find(t => t.id === activeTab)!.icon, { size: 18 })}
             </div>
             <div>
-              <p className="text-[10px] font-black text-text-muted uppercase tracking-widest">Secção Atual</p>
-              <p className="text-sm font-black text-text-main">{tabs.find(t => t.id === activeTab)?.label}</p>
+              <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Secção Atual</p>
+              <p className="text-sm font-bold text-text-main">{tabs.find(t => t.id === activeTab)?.label}</p>
             </div>
           </div>
           <button 
@@ -629,7 +629,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                     <div className="p-2 bg-accent text-white rounded-xl">
                       <SettingsIcon size={18} />
                     </div>
-                    <span className="font-black text-text-main tracking-tighter uppercase italic">Menu</span>
+                    <span className="font-bold text-text-main tracking-tighter uppercase italic">Menu</span>
                   </div>
                   <button 
                     onClick={() => setIsMobileMenuOpen(false)}
@@ -648,7 +648,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                         setIsMobileMenuOpen(false);
                       }}
                       className={cn(
-                        "w-full flex items-center gap-4 px-4 py-4 rounded-2xl text-[11px] font-black transition-all text-left uppercase tracking-widest",
+                        "w-full flex items-center gap-4 px-4 py-4 rounded-2xl text-[11px] font-bold transition-all text-left uppercase tracking-widest",
                         activeTab === item.id 
                           ? "bg-accent text-white shadow-lg shadow-accent/20" 
                           : "text-text-muted hover:text-text-main hover:bg-bg/50"
@@ -662,7 +662,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
 
                 <div className="mt-auto pt-10">
                    <div className="p-4 bg-bg border border-border-dim rounded-2xl">
-                     <p className="text-[9px] font-black text-text-muted uppercase tracking-[0.2em] mb-1">Trackify</p>
+                     <p className="text-[9px] font-bold text-text-muted uppercase tracking-[0.2em] mb-1">Trackify</p>
                      <p className="text-[9px] font-bold text-text-muted/50 uppercase">Versão 1.0.0</p>
                    </div>
                 </div>
@@ -697,18 +697,18 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
             initial={{ opacity: 0, x: 10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.2 }}
-            className="bg-card border border-border-dim rounded-[2.5rem] p-8 md:p-10 shadow-sm"
+            className="bg-card border border-border-dim rounded-3xl p-8 md:p-10 shadow-sm"
           >
             <div className="space-y-8">
               {activeTab === 'account' && (
                 <section className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
                   <div className="flex items-center gap-2 pb-2 border-b border-border-dim">
                     <UserIcon size={18} className="text-accent" />
-                    <h3 className="text-sm font-black text-text-main uppercase tracking-widest">Informação da Conta</h3>
+                    <h3 className="text-sm font-bold text-text-main uppercase tracking-widest">Informação da Conta</h3>
                   </div>
 
                   {/* Avatar Selection Container */}
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 p-6 bg-bg/50 border border-border-dim rounded-[2.5rem]">
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 p-6 bg-bg/50 border border-border-dim rounded-3xl">
                     {/* Preview Area */}
                     <div className="lg:col-span-3 flex flex-col items-center justify-center space-y-4">
                       <div 
@@ -722,7 +722,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                         onClick={() => fileInputRef.current?.click()}
                       >
                         <div className={cn(
-                          "w-28 h-28 rounded-[2.5rem] overflow-hidden border-2 shadow-2xl bg-card flex items-center justify-center transition-all",
+                          "w-28 h-28 rounded-3xl overflow-hidden border-2 shadow-2xl bg-card flex items-center justify-center transition-all",
                           isDragging ? "border-accent bg-accent/10" : "border-accent"
                         )}>
                           {photoURL ? (
@@ -741,14 +741,14 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                         </div>
                       </div>
                       <div className="text-center">
-                        <p className="text-[10px] font-black text-text-muted uppercase tracking-widest">O Teu Perfil</p>
+                        <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">O Teu Perfil</p>
                         {photoURL && (
                           <button 
                             onClick={(e) => {
                               e.stopPropagation();
                               setPhotoURL('');
                             }}
-                            className="text-[9px] font-black text-red-500 uppercase tracking-widest mt-2 hover:underline"
+                            className="text-[9px] font-bold text-red-500 uppercase tracking-widest mt-2 hover:underline"
                           >
                             Remover
                           </button>
@@ -763,7 +763,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                           <label className="block text-[10px] font-bold text-text-muted uppercase tracking-widest ml-1">Cria o Teu Próprio Avatar</label>
                           <button 
                             onClick={() => fileInputRef.current?.click()}
-                            className="flex items-center gap-1.5 text-[9px] font-black text-accent uppercase tracking-widest hover:underline"
+                            className="flex items-center gap-1.5 text-[9px] font-bold text-accent uppercase tracking-widest hover:underline"
                           >
                             <Upload size={12} />
                             Enviar Foto
@@ -791,7 +791,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                                 setPhotoURL(`https://api.dicebear.com/7.x/${style.id}/svg?seed=${currentSeed}`);
                               }}
                               className={cn(
-                                "px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all",
+                                "px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest transition-all",
                                 avatarStyle === style.id 
                                   ? "bg-accent text-white shadow-lg shadow-accent/20" 
                                   : "bg-bg border border-border-dim text-text-muted hover:border-accent hover:text-text-main"
@@ -924,7 +924,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                           className="w-full px-5 py-4 bg-bg border border-border-dim rounded-2xl text-sm text-text-main font-bold focus:ring-2 focus:ring-accent outline-none transition-all"
                           placeholder="Ex: 100.00"
                         />
-                        <span className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-black text-text-muted uppercase">{currency}</span>
+                        <span className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-bold text-text-muted uppercase">{currency}</span>
                       </div>
                     </div>
                   </div>
@@ -935,17 +935,17 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                 <section className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
                   <div className="flex items-center gap-2 pb-2 border-b border-border-dim">
                     <Calendar size={18} className="text-accent" />
-                    <h3 className="text-sm font-black text-text-main uppercase tracking-widest">CalendarSync</h3>
+                    <h3 className="text-sm font-bold text-text-main uppercase tracking-widest">CalendarSync</h3>
                   </div>
 
-                  <div className="p-8 bg-bg border border-border-dim rounded-[2.5rem] relative overflow-hidden group">
+                  <div className="p-8 bg-bg border border-border-dim rounded-3xl relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-8 text-accent/5 -rotate-12 group-hover:rotate-0 transition-all duration-500">
                       <Calendar size={120} />
                     </div>
 
                     <div className="relative z-10 space-y-6">
                       <div className="space-y-2">
-                        <h4 className="text-xl font-black text-text-main tracking-tight">Sincroniza com Google Calendar</h4>
+                        <h4 className="text-xl font-bold text-text-main tracking-tight">Sincroniza com Google Calendar</h4>
                         <p className="text-xs text-text-muted font-medium leading-relaxed max-w-md">
                           Adiciona automaticamente os teus pagamentos recorrentes ao teu calendário pessoal. 
                           Nunca mais te esqueças de uma renovação.
@@ -961,7 +961,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                              {calendarIntegration?.status === 'connected' ? <CheckCircle2 size={24} /> : <Link size={24} />}
                           </div>
                           <div className="flex-1">
-                            <p className="text-xs font-black text-text-main uppercase tracking-widest">Estado da Ligação</p>
+                            <p className="text-xs font-bold text-text-main uppercase tracking-widest">Estado da Ligação</p>
                             <p className={cn(
                               "text-[10px] font-bold uppercase tracking-wider",
                               calendarIntegration?.status === 'connected' ? "text-green-500" : "text-text-muted"
@@ -974,7 +974,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                               onClick={handleConnectCalendar}
                               disabled={calendarLoading}
                               className={cn(
-                                "px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                                "px-6 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all",
                                 calendarIntegration?.status === 'connected' 
                                   ? "bg-bg border border-border-dim text-text-muted hover:border-accent hover:text-accent" 
                                   : "bg-accent text-white shadow-lg shadow-accent/20 hover:bg-accent/90"
@@ -990,7 +990,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                               <button
                                 onClick={() => setShowCalendarDisconnectModal(true)}
                                 disabled={calendarLoading}
-                                className="px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500 hover:text-white"
+                                className="px-6 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500 hover:text-white"
                               >
                                 {calendarLoading ? <RefreshCw size={14} className="animate-spin" /> : 'Desligar'}
                               </button>
@@ -1006,7 +1006,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                                   <RefreshCw size={16} className={calendarLoading ? "animate-spin" : ""} />
                                 </div>
                                 <div>
-                                  <p className="text-[10px] font-black text-text-main uppercase tracking-widest">Sincronização Automática Ativa</p>
+                                  <p className="text-[10px] font-bold text-text-main uppercase tracking-widest">Sincronização Automática Ativa</p>
                                   <p className="text-[10px] text-text-muted font-bold">
                                     Última sincronização: {calendarIntegration.lastSyncAt ? new Date(calendarIntegration.lastSyncAt).toLocaleString() : 'Nunca'}
                                   </p>
@@ -1015,7 +1015,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                               <button
                                 onClick={handleSyncAll}
                                 disabled={calendarLoading}
-                                className="px-4 py-2 bg-accent/10 hover:bg-accent/20 text-accent text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center gap-2"
+                                className="px-4 py-2 bg-accent/10 hover:bg-accent/20 text-accent text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all flex items-center gap-2"
                               >
                                 {calendarLoading ? (
                                   <RefreshCw size={12} className="animate-spin" />
@@ -1050,17 +1050,17 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                 <section className="space-y-6">
                   <div className="flex items-center gap-2 pb-2 border-b border-border-dim">
                     <Palette size={18} className="text-accent" />
-                    <h3 className="text-sm font-black text-text-main uppercase tracking-widest">Interface e Aparência</h3>
+                    <h3 className="text-sm font-bold text-text-main uppercase tracking-widest">Interface e Aparência</h3>
                   </div>
 
                   <div className="p-6 bg-bg border border-border-dim rounded-2xl space-y-4">
-                    <p className="text-xs font-black text-text-main uppercase tracking-widest">Tema da Aplicação</p>
+                    <p className="text-xs font-bold text-text-main uppercase tracking-widest">Tema da Aplicação</p>
                     <div className="grid grid-cols-2 gap-4">
                       <button 
                         type="button"
                         onClick={() => setTheme('light')}
                         className={cn(
-                          "p-4 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all",
+                          "p-4 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all",
                           theme === 'light' ? "bg-card border-2 border-accent" : "bg-bg border border-border-dim opacity-50"
                         )}
                       >
@@ -1071,11 +1071,11 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                         type="button"
                         onClick={() => setTheme('dark')}
                         className={cn(
-                          "p-4 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all",
+                          "p-4 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all",
                           theme === 'dark' ? "bg-card border-2 border-accent" : "bg-bg border border-border-dim opacity-50"
                         )}
                       >
-                        <div className="w-4 h-4 rounded-full bg-black border border-white/10" />
+                        <div className="w-4 h-4 rounded-full bg-slate-900 border border-border-dim" />
                         Escuro
                       </button>
                     </div>
@@ -1088,14 +1088,14 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                   <div className="flex items-center justify-between pb-2 border-b border-border-dim">
                     <div className="flex items-center gap-2">
                        <LayoutGrid size={18} className="text-accent" />
-                       <h3 className="text-sm font-black text-text-main uppercase tracking-widest">Gestão de Categorias</h3>
+                       <h3 className="text-sm font-bold text-text-main uppercase tracking-widest">Gestão de Categorias</h3>
                     </div>
                     <button
                       onClick={() => {
                         setCategoryToEdit(null);
                         setIsCatModalOpen(true);
                       }}
-                      className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-accent/90 transition-all shadow-lg shadow-accent/20"
+                      className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-accent/90 transition-all shadow-lg shadow-accent/20"
                     >
                       <Plus size={14} />
                       Nova Categoria
@@ -1104,14 +1104,14 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
 
                   <div className="space-y-4">
                     <div className="flex items-center justify-between px-2">
-                       <h4 className="text-[10px] font-black text-text-muted uppercase tracking-widest">Todas as Categorias</h4>
+                       <h4 className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Todas as Categorias</h4>
                     </div>
                     
                     <div className="grid grid-cols-1 gap-3">
                       {/* Unified Categories List */}
                       {displayCategories.map((cat) => (
                         <div key={cat.id} className={cn(
-                          "p-5 border rounded-[2rem] flex items-center justify-between group transition-all",
+                          "p-5 border rounded-3xl flex items-center justify-between group transition-all",
                           cat.userId ? "bg-card border-border-dim hover:border-accent/30" : "bg-bg/30 border-border-dim/50 opacity-80 border-dashed hover:border-accent hover:opacity-100"
                         )}>
                           <div className="flex items-center gap-4 flex-1">
@@ -1122,8 +1122,8 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                               <IconRenderer name={cat.icon || 'Tag'} size={20} />
                             </div>
                             <div>
-                              <p className="text-sm font-black text-text-main tracking-tight">{cat.name}</p>
-                              <p className="text-[9px] text-text-muted font-black uppercase tracking-widest">
+                              <p className="text-sm font-bold text-text-main tracking-tight">{cat.name}</p>
+                              <p className="text-[9px] text-text-muted font-bold uppercase tracking-widest">
                                 {!cat.userId ? (
                                   <span className="text-accent">Sistema</span>
                                 ) : (
@@ -1170,7 +1170,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                             )}
                             {!cat.userId && (
                               <div className="px-3 py-1 bg-bg border border-border-dim rounded-lg">
-                                <span className="text-[9px] font-black text-text-muted uppercase tracking-widest">Fixo</span>
+                                <span className="text-[9px] font-bold text-text-muted uppercase tracking-widest">Fixo</span>
                               </div>
                             )}
                           </div>
@@ -1179,8 +1179,8 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                     </div>
 
                     {userCategories.length === 0 && (
-                      <div className="p-6 border border-dashed border-border-dim rounded-[2rem] text-center bg-bg/10">
-                        <p className="text-[10px] text-text-muted font-black uppercase tracking-widest">Não tens categorias personalizadas criadas.</p>
+                      <div className="p-6 border border-dashed border-border-dim rounded-3xl text-center bg-bg/10">
+                        <p className="text-[10px] text-text-muted font-bold uppercase tracking-widest">Não tens categorias personalizadas criadas.</p>
                       </div>
                     )}
                   </div>
@@ -1191,17 +1191,17 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                 <section className="space-y-6">
                   <div className="flex items-center gap-2 pb-2 border-b border-border-dim">
                     <CreditCard size={18} className="text-accent" />
-                    <h3 className="text-sm font-black text-text-main uppercase tracking-widest">Resumo de Faturação</h3>
+                    <h3 className="text-sm font-bold text-text-main uppercase tracking-widest">Resumo de Faturação</h3>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="p-6 bg-bg border border-border-dim rounded-2xl">
                       <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-1">Plano Atual</p>
-                      <p className="text-lg font-black text-text-main">Gratuito (Beta)</p>
+                      <p className="text-lg font-bold text-text-main">Gratuito (Beta)</p>
                     </div>
                     <div className="p-6 bg-bg border border-border-dim rounded-2xl">
                       <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-1">Backup Automático</p>
-                      <p className="text-lg font-black text-green-500 flex items-center gap-1">
+                      <p className="text-lg font-bold text-green-500 flex items-center gap-1">
                         <CheckCircle2 size={16} /> Ativo
                       </p>
                     </div>
@@ -1216,7 +1216,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                     <button 
                       onClick={handleExportJSON}
                       disabled={saving}
-                      className="flex items-center gap-2 px-6 py-2 bg-accent text-white rounded-xl text-[10px] font-black hover:bg-accent/90 transition-all uppercase tracking-widest disabled:opacity-50"
+                      className="flex items-center gap-2 px-6 py-2 bg-accent text-white rounded-xl text-[10px] font-bold hover:bg-accent/90 transition-all uppercase tracking-widest disabled:opacity-50"
                     >
                       {saving ? (
                         <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -1233,7 +1233,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                 <section className="space-y-6">
                   <div className="flex items-center gap-2 pb-2 border-b border-border-dim">
                     <Bell size={18} className="text-accent" />
-                    <h3 className="text-sm font-black text-text-main uppercase tracking-widest">Notificações e Alertas</h3>
+                    <h3 className="text-sm font-bold text-text-main uppercase tracking-widest">Notificações e Alertas</h3>
                   </div>
 
                   <div className="space-y-4">
@@ -1271,7 +1271,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                               type="button"
                               onClick={() => setNotifications({ ...notifications, reminderDays: days })}
                               className={cn(
-                                "px-4 py-2 rounded-xl text-[10px] font-black transition-all",
+                                "px-4 py-2 rounded-xl text-[10px] font-bold transition-all",
                                 notifications.reminderDays === days 
                                   ? "bg-accent text-white" 
                                   : "bg-bg border border-border-dim text-text-muted hover:border-text-muted"
@@ -1327,7 +1327,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                 <section className="space-y-6">
                   <div className="flex items-center gap-2 pb-2 border-b border-border-dim">
                     <Shield size={18} className="text-accent" />
-                    <h3 className="text-sm font-black text-text-main uppercase tracking-widest">Segurança da Conta</h3>
+                    <h3 className="text-sm font-bold text-text-main uppercase tracking-widest">Segurança da Conta</h3>
                   </div>
 
                   <div className="space-y-4">
@@ -1345,7 +1345,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                         {!isChangingPassword && (
                           <button 
                             onClick={() => setIsChangingPassword(true)}
-                            className="px-4 py-2 bg-accent text-white rounded-xl text-[10px] font-black hover:bg-accent/90 transition-all uppercase tracking-widest"
+                            className="px-4 py-2 bg-accent text-white rounded-xl text-[10px] font-bold hover:bg-accent/90 transition-all uppercase tracking-widest"
                           >
                             Alterar
                           </button>
@@ -1407,14 +1407,14 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                                   setNewPassword('');
                                   setConfirmPassword('');
                                 }}
-                                className="px-6 py-2 bg-bg border border-border-dim text-text-muted rounded-xl text-[10px] font-black hover:border-text-muted transition-all uppercase tracking-widest"
+                                className="px-6 py-2 bg-bg border border-border-dim text-text-muted rounded-xl text-[10px] font-bold hover:border-text-muted transition-all uppercase tracking-widest"
                               >
                                 Cancelar
                               </button>
                               <button
                                 type="submit"
                                 disabled={passwordLoading}
-                                className="px-6 py-2 bg-accent text-white rounded-xl text-[10px] font-black hover:bg-accent/90 transition-all uppercase tracking-widest flex items-center gap-2"
+                                className="px-6 py-2 bg-accent text-white rounded-xl text-[10px] font-bold hover:bg-accent/90 transition-all uppercase tracking-widest flex items-center gap-2"
                               >
                                 {passwordLoading ? (
                                   <RefreshCw size={12} className="animate-spin" />
@@ -1430,7 +1430,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                     </div>
 
                     <div className="pt-10 border-t border-border-dim">
-                      <h4 className="text-[10px] font-black text-red-500 uppercase tracking-widest mb-4">Zona de Perigo</h4>
+                      <h4 className="text-[10px] font-bold text-red-500 uppercase tracking-widest mb-4">Zona de Perigo</h4>
                       <div className="p-6 bg-red-500/5 border border-red-500/20 rounded-2xl flex items-center justify-between">
                         <div>
                           <p className="text-xs font-bold text-text-main">Eliminar Conta</p>
@@ -1438,7 +1438,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                         </div>
                         <button 
                           onClick={() => setShowDeleteModal(true)}
-                          className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-xl text-[10px] font-black hover:bg-red-600 transition-all uppercase tracking-widest"
+                          className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-xl text-[10px] font-bold hover:bg-red-600 transition-all uppercase tracking-widest"
                         >
                           <Trash2 size={14} /> Eliminar
                         </button>
@@ -1483,40 +1483,40 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                       initial={{ opacity: 0, scale: 0.95, y: 20 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                      className="relative bg-card border border-border-dim w-full max-w-md p-8 rounded-[2.5rem] shadow-2xl"
+                      className="relative bg-card border border-border-dim w-full max-w-md p-8 rounded-3xl shadow-2xl"
                     >
                       <div className="flex flex-col items-center text-center space-y-4">
                         <div className="p-4 bg-red-500/10 rounded-full text-red-500">
                           <AlertCircle size={40} />
                         </div>
-                        <h3 className="text-xl font-black text-text-main tracking-tight">Acção Irreversível</h3>
+                        <h3 className="text-xl font-bold text-text-main tracking-tight">Acção Irreversível</h3>
                         <p className="text-xs text-text-muted font-bold">
                           Estás prestes a apagar a tua conta e todas as tuas subscrições. Isto não pode ser desfeito.
                         </p>
                         
                         <div className="w-full space-y-4 pt-4">
                           <div className="space-y-2">
-                            <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest">Escreve ELIMINAR para confirmar</label>
+                            <label className="block text-[10px] font-bold text-text-muted uppercase tracking-widest">Escreve ELIMINAR para confirmar</label>
                             <input
                               type="text"
                               value={deleteConfirmText}
                               onChange={(e) => setDeleteConfirmText(e.target.value)}
                               placeholder="ELIMINAR"
-                              className="w-full px-5 py-4 bg-bg border border-border-dim rounded-2xl text-center font-black tracking-widest text-red-500 focus:ring-2 focus:ring-red-500 outline-none"
+                              className="w-full px-5 py-4 bg-bg border border-border-dim rounded-2xl text-center font-bold tracking-widest text-red-500 focus:ring-2 focus:ring-red-500 outline-none"
                             />
                           </div>
                           
                           <div className="flex gap-3 pt-2">
                             <button
                               onClick={() => setShowDeleteModal(false)}
-                              className="flex-1 px-6 py-4 bg-bg border border-border-dim rounded-2xl text-xs font-black text-text-muted hover:border-text-muted transition-all"
+                              className="flex-1 px-6 py-4 bg-bg border border-border-dim rounded-2xl text-xs font-bold text-text-muted hover:border-text-muted transition-all"
                             >
                               CANCELAR
                             </button>
                             <button
                               onClick={handleDeleteAccount}
                               disabled={deleteConfirmText !== 'ELIMINAR' || saving}
-                              className="flex-1 px-6 py-4 bg-red-500 text-white rounded-2xl text-xs font-black hover:bg-red-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="flex-1 px-6 py-4 bg-red-500 text-white rounded-2xl text-xs font-bold hover:bg-red-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               {saving ? "A ELIMINAR..." : "ELIMINAR CONTA"}
                             </button>
@@ -1581,7 +1581,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                         </div>
 
                         <div className="space-y-3">
-                          <h3 className="text-3xl font-black text-text-main tracking-tight uppercase italic">
+                          <h3 className="text-3xl font-bold text-text-main tracking-tight uppercase italic">
                             Conta Eliminada!
                           </h3>
                           <p className="text-xs text-text-muted font-bold leading-relaxed px-4">
@@ -1593,7 +1593,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                         <button
                           onClick={finalizeAccountDeletion}
                           disabled={saving}
-                          className="group relative w-full overflow-hidden bg-accent text-white py-5 rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] transition-all hover:shadow-2xl hover:shadow-accent/40 active:scale-95 disabled:opacity-50"
+                          className="group relative w-full overflow-hidden bg-accent text-white py-5 rounded-2xl text-[10px] font-bold uppercase tracking-[0.3em] transition-all hover:shadow-2xl hover:shadow-accent/40 active:scale-95 disabled:opacity-50"
                         >
                           <span className="relative z-10 flex items-center justify-center gap-2">
                             {saving ? "A REDIRECIONAR..." : "CONTINUAR PARA O INÍCIO"}
@@ -1607,7 +1607,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                           />
                         </button>
                         
-                        <p className="text-[9px] font-black text-text-muted/30 uppercase tracking-widest pt-2">
+                        <p className="text-[9px] font-bold text-text-muted/30 uppercase tracking-widest pt-2">
                           TRACKIFY • SISTEMA DE GESTÃO
                         </p>
                       </div>
@@ -1623,7 +1623,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                     type="button"
                     onClick={() => handleSave()}
                     disabled={saving}
-                    className="flex items-center gap-2 bg-accent hover:bg-accent/90 text-white px-8 py-4 rounded-2xl text-xs font-black transition-all shadow-xl shadow-accent/20 disabled:opacity-50"
+                    className="flex items-center gap-2 bg-accent hover:bg-accent/90 text-white px-8 py-4 rounded-2xl text-xs font-bold transition-all shadow-xl shadow-accent/20 disabled:opacity-50"
                   >
                     {saving ? (
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

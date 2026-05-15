@@ -42,7 +42,7 @@ export default function DeleteConfirmationModal({
                 <AlertTriangle size={32} />
               </div>
               
-              <h2 className="text-xl sm:text-2xl font-black text-text-main tracking-tighter mb-2">
+              <h2 className="text-xl sm:text-2xl font-bold text-text-main tracking-tighter mb-2">
                 {title}
               </h2>
               <p className="text-text-muted text-xs sm:text-sm font-bold uppercase tracking-widest leading-relaxed mb-8">
@@ -53,7 +53,7 @@ export default function DeleteConfirmationModal({
                 <button
                   onClick={onClose}
                   disabled={loading}
-                  className="py-4 px-6 bg-bg border border-border-dim rounded-2xl text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-text-muted hover:text-text-main hover:border-text-main transition-all active:scale-95 disabled:opacity-50"
+                  className="py-4 px-6 bg-bg border border-border-dim rounded-2xl text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-text-muted hover:text-text-main hover:border-text-main transition-all active:scale-95 disabled:opacity-50"
                 >
                   Cancelar
                 </button>
@@ -61,7 +61,7 @@ export default function DeleteConfirmationModal({
                   onClick={onConfirm}
                   disabled={loading}
                   className={cn(
-                    "py-4 px-6 bg-red-500 rounded-2xl text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-white hover:bg-red-600 shadow-lg shadow-red-500/20 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50",
+                    "py-4 px-6 bg-red-500 rounded-2xl text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-white hover:bg-red-600 shadow-lg shadow-red-500/20 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50",
                     loading && "animate-pulse"
                   )}
                 >

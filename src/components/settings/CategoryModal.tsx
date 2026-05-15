@@ -57,10 +57,10 @@ export default function CategoryModal({ isOpen, onClose, onSave, editCategory, l
             <div className="p-8 sm:p-10">
               <div className="flex justify-between items-center mb-10">
                 <div>
-                  <h3 className="text-3xl font-black text-text-main tracking-tighter">
+                  <h3 className="text-3xl font-bold text-text-main tracking-tighter">
                     {editCategory ? 'Editar Categoria' : 'Nova Categoria'}
                   </h3>
-                  <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] mt-2">
+                  <p className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mt-2">
                     {editCategory ? 'Personaliza esta categoria de sistema ou manual' : 'Define um novo agrupamento para as tuas subscrições'}
                   </p>
                 </div>
@@ -75,7 +75,7 @@ export default function CategoryModal({ isOpen, onClose, onSave, editCategory, l
               <form onSubmit={handleSubmit} className="space-y-8">
                 <div className="space-y-6">
                   <div>
-                    <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-3 ml-1">Nome da Categoria</label>
+                    <label className="block text-[10px] font-bold text-text-muted uppercase tracking-widest mb-3 ml-1">Nome da Categoria</label>
                     <input
                       type="text"
                       value={name}
@@ -87,7 +87,7 @@ export default function CategoryModal({ isOpen, onClose, onSave, editCategory, l
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-3 ml-1">Ícone</label>
+                    <label className="block text-[10px] font-bold text-text-muted uppercase tracking-widest mb-3 ml-1">Ícone</label>
                     <div className="grid grid-cols-6 gap-2 p-4 bg-bg border border-border-dim rounded-3xl">
                       {CATEGORY_ICONS.map((iconSlug) => (
                         <button
@@ -108,7 +108,7 @@ export default function CategoryModal({ isOpen, onClose, onSave, editCategory, l
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-3 ml-1">Cor</label>
+                    <label className="block text-[10px] font-bold text-text-muted uppercase tracking-widest mb-3 ml-1">Cor</label>
                     <div className="flex flex-wrap gap-3 items-center p-4 bg-bg border border-border-dim rounded-3xl">
                       {CATEGORY_COLORS.map((c) => (
                         <button
@@ -147,14 +147,14 @@ export default function CategoryModal({ isOpen, onClose, onSave, editCategory, l
                   <button
                     type="button"
                     onClick={onClose}
-                    className="flex-1 px-8 py-4 bg-bg border border-border-dim rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-card transition-all"
+                    className="flex-1 px-8 py-4 bg-bg border border-border-dim rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-card transition-all"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     disabled={loading || !name.trim()}
-                    className="flex-1 px-8 py-4 bg-accent text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-accent/90 transition-all shadow-lg shadow-accent/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="flex-1 px-8 py-4 bg-accent text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-accent/90 transition-all shadow-lg shadow-accent/20 flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     {loading ? (
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

@@ -141,12 +141,12 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-card w-full max-w-xl rounded-[2.5rem] border border-border-dim shadow-2xl overflow-hidden flex flex-col md:flex-row h-auto max-h-[90vh]"
+              className="bg-card w-full max-w-xl rounded-3xl sm:rounded-[2.5rem] border border-border-dim shadow-2xl overflow-hidden flex flex-col md:flex-row h-auto max-h-[90vh]"
             >
               {/* Left Side - Visual Style */}
               <div className="hidden md:flex md:w-1/3 bg-bg p-10 flex-col justify-between text-text-main border-r border-border-dim shrink-0">
                 <div>
-                  <h2 className="text-sm md:text-[0.95rem] font-black tracking-tighter mb-4 leading-tight text-accent uppercase">
+                  <h2 className="text-sm md:text-[0.95rem] font-bold tracking-tighter mb-4 leading-tight text-accent uppercase">
                     {editSubscription ? 'Editar' : 'Nova'} Subscrição
                   </h2>
                   <div className="w-full h-px bg-accent/20 mb-8"></div>
@@ -156,7 +156,7 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
                 </div>
                 
                 <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-[10px] font-black text-accent uppercase tracking-[0.2em]">
+                  <div className="flex items-center gap-2 text-[10px] font-bold text-accent uppercase tracking-[0.2em]">
                     <div className="w-2 h-2 rounded-full bg-accent animate-pulse shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div>
                     READY TO TRACK
                   </div>
@@ -172,7 +172,7 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
                   <X size={20} />
                 </button>
                 <div className="flex justify-between items-center mb-6 md:mb-8">
-                  <h2 className="md:hidden text-xl font-black text-accent tracking-tight">
+                  <h2 className="md:hidden text-xl font-bold text-accent tracking-tight">
                     {editSubscription ? 'Editar' : 'Nova'} Subscrição
                   </h2>
                 </div>
@@ -182,7 +182,7 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
                     <div className="mb-6 sm:mb-8">
                       <div className="flex items-center gap-2 mb-3 sm:mb-4 ml-1">
                         <Zap size={14} className="text-accent" />
-                        <label className="text-[10px] font-black text-text-muted uppercase tracking-widest">Escolha Rápida</label>
+                        <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Escolha Rápida</label>
                       </div>
                       <div className="flex flex-wrap gap-1.5 sm:gap-2">
                         {SUBSCRIPTION_TEMPLATES.map((tpl) => (
@@ -198,7 +198,7 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
                                 category: tpl.category
                               });
                             }}
-                            className="px-3 sm:px-4 py-1.5 sm:py-2 bg-bg border border-border-dim rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-text-muted hover:border-accent hover:text-accent transition-all active:scale-95 flex items-center gap-1.5 sm:gap-2"
+                            className="px-3 sm:px-4 py-1.5 sm:py-2 bg-bg border border-border-dim rounded-xl text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-text-muted hover:border-accent hover:text-accent transition-all active:scale-95 flex items-center gap-1.5 sm:gap-2"
                           >
                             <IconRenderer name={tpl.icon} size={14} />
                             {tpl.name}
@@ -209,7 +209,7 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
                   )}
 
                   <div>
-                    <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-1.5 sm:mb-2 ml-1">Nome do Serviço</label>
+                    <label className="block text-[10px] font-bold text-text-muted uppercase tracking-widest mb-1.5 sm:mb-2 ml-1">Nome do Serviço</label>
                     <div className="relative">
                       <input
                         required
@@ -223,9 +223,9 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                     <div className="sm:col-span-2">
-                      <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-1.5 sm:mb-2 ml-1">Valor</label>
+                      <label className="block text-[10px] font-bold text-text-muted uppercase tracking-widest mb-1.5 sm:mb-2 ml-1">Valor</label>
                       <div className="relative">
-                        <div className="absolute left-5 sm:left-6 top-1/2 -translate-y-1/2 text-text-muted font-black text-sm">
+                        <div className="absolute left-5 sm:left-6 top-1/2 -translate-y-1/2 text-text-muted font-bold text-sm">
                           {formData.currency === 'EUR' ? '€' : formData.currency === 'USD' ? '$' : formData.currency === 'GBP' ? '£' : 'R$'}
                         </div>
                         <input
@@ -240,12 +240,12 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
                       </div>
                     </div>
                     <div>
-                      <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-1.5 sm:mb-2 ml-1">Moeda</label>
+                      <label className="block text-[10px] font-bold text-text-muted uppercase tracking-widest mb-1.5 sm:mb-2 ml-1">Moeda</label>
                       <div className="relative">
                         <select
                           value={formData.currency}
                           onChange={(e) => setFormData({...formData, currency: e.target.value})}
-                          className="w-full px-4 py-3.5 sm:py-4 bg-bg border border-border-dim rounded-2xl text-xs text-text-main font-black focus:ring-2 focus:ring-accent outline-none transition-all appearance-none cursor-pointer"
+                          className="w-full px-4 py-3.5 sm:py-4 bg-bg border border-border-dim rounded-2xl text-xs text-text-main font-bold focus:ring-2 focus:ring-accent outline-none transition-all appearance-none cursor-pointer"
                         >
                           <option value="EUR">EUR</option>
                           <option value="USD">USD</option>
@@ -259,7 +259,7 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
 
                   <div className={cn("grid gap-3 sm:gap-4", (formData.billingCycle === 'yearly' || formData.billingCycle === 'annual') ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-2")}>
                     <div>
-                      <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-1.5 sm:mb-2 ml-1">Dia</label>
+                      <label className="block text-[10px] font-bold text-text-muted uppercase tracking-widest mb-1.5 sm:mb-2 ml-1">Dia</label>
                       <div className="relative">
                         <Calendar size={16} className="absolute left-5 sm:left-6 top-1/2 -translate-y-1/2 text-text-muted" />
                         <input
@@ -276,12 +276,12 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
 
                     {(formData.billingCycle === 'yearly' || formData.billingCycle === 'annual') && (
                       <div>
-                        <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-1.5 sm:mb-2 ml-1">Mês</label>
+                        <label className="block text-[10px] font-bold text-text-muted uppercase tracking-widest mb-1.5 sm:mb-2 ml-1">Mês</label>
                         <div className="relative">
                           <select
                             value={formData.billingMonth}
                             onChange={(e) => setFormData({...formData, billingMonth: e.target.value})}
-                            className="w-full px-4 py-3.5 sm:py-4 bg-bg border border-border-dim rounded-2xl text-xs text-text-main font-black focus:ring-2 focus:ring-accent outline-none transition-all appearance-none cursor-pointer"
+                            className="w-full px-4 py-3.5 sm:py-4 bg-bg border border-border-dim rounded-2xl text-xs text-text-main font-bold focus:ring-2 focus:ring-accent outline-none transition-all appearance-none cursor-pointer"
                           >
                             <option value="1">Jan</option>
                             <option value="2">Fev</option>
@@ -302,12 +302,12 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
                     )}
 
                     <div className={cn((formData.billingCycle === 'yearly' || formData.billingCycle === 'annual') ? "col-span-2 sm:col-span-1" : "")}>
-                      <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-1.5 sm:mb-2 ml-1">Ciclo</label>
+                      <label className="block text-[10px] font-bold text-text-muted uppercase tracking-widest mb-1.5 sm:mb-2 ml-1">Ciclo</label>
                       <div className="relative">
                         <select
                           value={formData.billingCycle}
                           onChange={(e) => setFormData({...formData, billingCycle: e.target.value as BillingCycle})}
-                          className="w-full px-5 sm:px-6 py-3.5 sm:py-4 bg-bg border border-border-dim rounded-2xl text-xs text-text-main font-black focus:ring-2 focus:ring-accent outline-none transition-all appearance-none cursor-pointer"
+                          className="w-full px-5 sm:px-6 py-3.5 sm:py-4 bg-bg border border-border-dim rounded-2xl text-xs text-text-main font-bold focus:ring-2 focus:ring-accent outline-none transition-all appearance-none cursor-pointer"
                         >
                           <option value="monthly">Mensal</option>
                           <option value="yearly">Anual</option>
@@ -320,11 +320,11 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
 
                   <div>
                     <div className="flex items-center justify-between mb-2 ml-1">
-                      <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest">Categoria</label>
+                      <label className="block text-[10px] font-bold text-text-muted uppercase tracking-widest">Categoria</label>
                       <button 
                         type="button"
                         onClick={() => setShowNewCategoryInput(!showNewCategoryInput)}
-                        className="text-[10px] font-black text-accent uppercase tracking-widest hover:underline"
+                        className="text-[10px] font-bold text-accent uppercase tracking-widest hover:underline"
                       >
                         {showNewCategoryInput ? 'Cancelar' : '+ Nova Categoria'}
                       </button>
@@ -343,7 +343,7 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
                           <button
                             type="button"
                             onClick={handleAddCategory}
-                            className="px-6 bg-accent text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-accent/90"
+                            className="px-6 bg-accent text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-accent/90"
                           >
                             OK
                           </button>
@@ -420,7 +420,7 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-5 bg-accent text-white rounded-2xl text-sm font-black shadow-xl shadow-accent/20 hover:bg-accent/90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="w-full py-5 bg-accent text-white rounded-2xl text-sm font-bold shadow-xl shadow-accent/20 hover:bg-accent/90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     {loading ? (
                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

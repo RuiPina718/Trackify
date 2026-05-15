@@ -78,7 +78,7 @@ export default function App() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-bg">
         <Loader2 className="w-10 h-10 text-accent animate-spin mb-6" />
-        <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.3em]">Trackify is loading</p>
+        <p className="text-[10px] font-bold text-text-muted uppercase tracking-[0.3em]">Trackify is loading</p>
       </div>
     );
   }
@@ -97,7 +97,7 @@ export default function App() {
             <div className="fixed top-6 left-6 z-50">
               <button 
                 onClick={() => setShowLoginDuringMaintenance(false)}
-                className="px-4 py-2 bg-card border border-border-dim rounded-xl text-[10px] font-black uppercase tracking-widest hover:border-accent transition-all"
+                className="px-4 py-2 bg-card border border-border-dim rounded-xl text-[10px] font-bold uppercase tracking-widest hover:border-accent transition-all"
               >
                 Voltar
               </button>

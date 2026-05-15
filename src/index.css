@@ -7,33 +7,33 @@
   
   --color-bg: var(--bg);
   --color-card: var(--card);
-  --color-accent: #6366f1; /* Indigo accent */
+  --color-accent: #2563eb; /* A standard, professional Blue */
   --color-text-main: var(--text-main);
   --color-text-muted: var(--text-muted);
   --color-border-dim: var(--border-dim);
   
-  --color-streaming: #ff4b2b;
-  --color-software: #00bef8;
-  --color-gaming: #22c55e;
-  --color-health: #fb7185;
+  --color-streaming: #ef4444;
+  --color-software: #3b82f6;
+  --color-gaming: #10b981;
+  --color-health: #f43f5e;
 
-  --shadow-premium: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-premium: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
 }
 
 :root {
-  --bg: #fdfdfb; /* Warmer off-white */
+  --bg: #fafafa;
   --card: #ffffff;
-  --text-main: #0a0a0a;
-  --text-muted: #737373;
-  --border-dim: #e5e5e5;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --border-dim: #e2e8f0;
 }
 
 .dark {
-  --bg: #050505; /* Black background */
-  --card: #0e0e0e; /* Very dark card */
-  --text-main: #f5f5f5;
-  --text-muted: #a3a3a3;
-  --border-dim: #1f1f1f;
+  --bg: #020617;
+  --card: #0f172a;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --border-dim: #1e293b;
 }
 
 @layer base {
@@ -51,5 +51,5 @@
 }
 
 .micro-label {
-  @apply text-[10px] font-black uppercase tracking-[0.14em] text-text-muted;
+  @apply text-[10px] font-bold uppercase tracking-[0.14em] text-text-muted;
 }

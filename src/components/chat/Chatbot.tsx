@@ -112,10 +112,10 @@ export default function Chatbot({ userId }: ChatbotProps) {
                   <Bot size={20} />
                 </div>
                 <div>
-                  <h4 className="text-sm font-black text-text-main tracking-tight">Assistente Trackify</h4>
+                  <h4 className="text-sm font-bold text-text-main tracking-tight">Assistente Trackify</h4>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <div className="w-1.5 h-1.5 bg-health rounded-full animate-pulse" />
-                    <span className="text-[10px] font-black text-health uppercase tracking-widest">Online</span>
+                    <span className="text-[10px] font-bold text-health uppercase tracking-widest">Online</span>
                   </div>
                 </div>
               </div>
@@ -153,7 +153,7 @@ export default function Chatbot({ userId }: ChatbotProps) {
                       )}
                     >
                       <div className={cn(
-                        "w-8 h-8 rounded-xl shrink-0 flex items-center justify-center text-xs font-black border",
+                        "w-8 h-8 rounded-xl shrink-0 flex items-center justify-center text-xs font-bold border",
                         msg.role === 'user' 
                           ? "bg-bg border-border-dim text-text-main" 
                           : "bg-accent/10 border-accent/20 text-accent"
@@ -195,7 +195,7 @@ export default function Chatbot({ userId }: ChatbotProps) {
                       <button
                         key={idx}
                         onClick={() => handleSendMessage(action.text)}
-                        className="whitespace-nowrap px-4 py-2 bg-card border border-border-dim rounded-xl text-[10px] font-black uppercase tracking-widest text-text-muted hover:border-accent hover:text-accent transition-all active:scale-95 shadow-sm"
+                        className="whitespace-nowrap px-4 py-2 bg-card border border-border-dim rounded-xl text-[10px] font-bold uppercase tracking-widest text-text-muted hover:border-accent hover:text-accent transition-all active:scale-95 shadow-sm"
                       >
                         {action.label}
                       </button>

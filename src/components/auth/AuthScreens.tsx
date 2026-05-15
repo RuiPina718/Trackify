@@ -139,7 +139,7 @@ export default function AuthScreens() {
                 referrerPolicy="no-referrer"
               />
             </div>
-            <h1 className="text-4xl font-black tracking-tight text-text-main font-display lowercase">trackify.</h1>
+            <h1 className="text-4xl font-bold tracking-tight text-text-main font-display lowercase">trackify.</h1>
           </motion.div>
 
           <motion.div
@@ -148,7 +148,7 @@ export default function AuthScreens() {
             transition={{ delay: 0.2 }}
             className="max-w-2xl"
           >
-            <h2 className="text-[140px] font-black text-text-main tracking-[-0.04em] leading-[0.8] mb-12 font-display uppercase">
+            <h2 className="text-[140px] font-bold text-text-main tracking-[-0.04em] leading-[0.8] mb-12 font-display uppercase">
               DOMINA <br />
               CUSTOS <br />
               <span className="text-accent italic font-serif lowercase tracking-tight">recorrentes.</span>
@@ -200,7 +200,7 @@ export default function AuthScreens() {
               referrerPolicy="no-referrer"
             />
           </div>
-          <h1 className="text-3xl font-black tracking-tighter text-text-main font-display lowercase">trackify.</h1>
+          <h1 className="text-3xl font-bold tracking-tighter text-text-main font-display lowercase">trackify.</h1>
         </div>
 
         <motion.div 
@@ -210,15 +210,15 @@ export default function AuthScreens() {
           className="w-full max-w-sm bg-card p-10 rounded-[3rem] shadow-2xl border border-border-dim relative z-10"
         >
           <div className="text-center mb-10">
-            <h2 className="text-2xl font-black text-text-main tracking-tight mb-2">Bem-vindo.</h2>
-            <p className="text-[10px] text-text-muted font-black uppercase tracking-[0.2em]">O teu dashboard financeiro aguarda-te</p>
+            <h2 className="text-2xl font-bold text-text-main tracking-tight mb-2">Bem-vindo.</h2>
+            <p className="text-[10px] text-text-muted font-bold uppercase tracking-[0.2em]">O teu dashboard financeiro aguarda-te</p>
           </div>
 
           <div className="flex mb-8 bg-bg p-1.5 rounded-2xl border border-border-dim">
             <button
               onClick={() => setIsLogin(true)}
               className={cn(
-                "flex-1 py-3 text-[10px] uppercase tracking-widest font-black rounded-xl transition-all",
+                "flex-1 py-3 text-[10px] uppercase tracking-widest font-bold rounded-xl transition-all",
                 isLogin ? "bg-accent text-white shadow-lg" : "text-text-muted hover:text-text-main"
               )}
             >
@@ -227,7 +227,7 @@ export default function AuthScreens() {
             <button
               onClick={() => setIsLogin(false)}
               className={cn(
-                "flex-1 py-3 text-[10px] uppercase tracking-widest font-black rounded-xl transition-all",
+                "flex-1 py-3 text-[10px] uppercase tracking-widest font-bold rounded-xl transition-all",
                 !isLogin ? "bg-accent text-white shadow-lg" : "text-text-muted hover:text-text-main"
               )}
             >
@@ -237,7 +237,7 @@ export default function AuthScreens() {
 
           <form onSubmit={handleEmailAuth} className="space-y-5">
             <div>
-              <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-2.5 ml-1">Email</label>
+              <label className="block text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2.5 ml-1">Email</label>
               <div className="relative group">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted/50 group-focus-within:text-accent transition-colors" size={18} />
                 <input
@@ -251,7 +251,7 @@ export default function AuthScreens() {
               </div>
             </div>
             <div>
-              <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest mb-2.5 ml-1">Palavra-passe</label>
+              <label className="block text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2.5 ml-1">Palavra-passe</label>
               <input
                 type="password"
                 required
@@ -266,7 +266,7 @@ export default function AuthScreens() {
                     type="button"
                     onClick={handleResetPassword}
                     disabled={loading}
-                    className="text-[10px] font-black text-accent uppercase tracking-widest hover:underline disabled:opacity-50"
+                    className="text-[10px] font-bold text-accent uppercase tracking-widest hover:underline disabled:opacity-50"
                   >
                     Recuperar acesso
                   </button>
@@ -281,7 +281,7 @@ export default function AuthScreens() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   className={cn(
-                    "p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3 border",
+                    "p-4 rounded-2xl text-[10px] font-bold uppercase tracking-widest flex items-center gap-3 border",
                     error ? "bg-red-500/5 text-red-500 border-red-500/10" : "bg-green-500/5 text-green-500 border-green-500/10"
                   )}
                 >
@@ -294,7 +294,7 @@ export default function AuthScreens() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-5 bg-accent text-white rounded-[2rem] text-[11px] font-black uppercase tracking-[0.2em] hover:bg-accent/90 transition-all flex items-center justify-center gap-3 disabled:opacity-50 shadow-xl shadow-accent/20 active:scale-[0.98]"
+              className="w-full py-5 bg-accent text-white rounded-[2rem] text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-accent/90 transition-all flex items-center justify-center gap-3 disabled:opacity-50 shadow-xl shadow-accent/20 active:scale-[0.98]"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -312,21 +312,21 @@ export default function AuthScreens() {
               <div className="w-full border-t border-border-dim"></div>
             </div>
             <div className="relative flex justify-center text-[9px] items-center uppercase tracking-[0.3em]">
-              <span className="bg-card px-4 text-text-muted font-black">Em alternativa</span>
+              <span className="bg-card px-4 text-text-muted font-bold">Em alternativa</span>
             </div>
           </div>
 
           <button
             onClick={handleGoogleAuth}
             disabled={loading}
-            className="w-full py-5 bg-bg border border-border-dim text-text-main rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] hover:border-accent transition-all flex items-center justify-center gap-3 group"
+            className="w-full py-5 bg-bg border border-border-dim text-text-main rounded-2xl text-[11px] font-bold uppercase tracking-[0.2em] hover:border-accent transition-all flex items-center justify-center gap-3 group"
           >
             <Chrome size={18} className="text-red-500 group-hover:scale-110 transition-transform" />
             Entrar com Google
           </button>
         </motion.div>
         
-        <p className="mt-12 text-center text-[9px] text-text-muted font-black uppercase tracking-[0.2em] px-10 leading-relaxed max-w-xs opacity-50">
+        <p className="mt-12 text-center text-[9px] text-text-muted font-bold uppercase tracking-[0.2em] px-10 leading-relaxed max-w-xs opacity-50">
           Privacidade primeiro. Os teus dados de subscrição são encriptados e nunca partilhados.
         </p>
       </div>

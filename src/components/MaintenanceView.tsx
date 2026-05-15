@@ -38,7 +38,7 @@ export default function MaintenanceView({
             </div>
           </div>
 
-          <h1 className="text-4xl font-black text-text-main tracking-tighter uppercase mb-4 leading-none">
+          <h1 className="text-4xl font-bold text-text-main tracking-tighter uppercase mb-4 leading-none">
             Modo de <br/>
             <span className="text-accent underline decoration-4 underline-offset-8">Manutenção</span>
           </h1>
@@ -58,7 +58,7 @@ export default function MaintenanceView({
                   <AlertTriangle size={20} />
                 </div>
                 <div className="text-left">
-                  <p className="text-[10px] font-black text-text-main uppercase tracking-widest">Previsão</p>
+                  <p className="text-[10px] font-bold text-text-main uppercase tracking-widest">Previsão</p>
                   <p className="text-[11px] font-bold text-text-muted uppercase">Voltamos dentro de instantes</p>
                 </div>
               </div>
@@ -74,21 +74,21 @@ export default function MaintenanceView({
             >
               <div className="flex items-center gap-4 mb-4">
                 <ShieldCheck size={20} className="text-accent" />
-                <p className="text-xs font-black text-accent uppercase tracking-widest">Acesso de Administrador</p>
+                <p className="text-xs font-bold text-accent uppercase tracking-widest">Acesso de Administrador</p>
               </div>
               <p className="text-[11px] text-text-muted font-bold uppercase tracking-widest leading-relaxed mb-4">
                 Como és administrador, podes entrar na plataforma para testar as alterações mesmo em modo de manutenção.
               </p>
               <button 
                 onClick={onEnterAnyway}
-                className="w-full py-4 bg-accent text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-accent/20 hover:bg-accent/90 transition-all"
+                className="w-full py-4 bg-accent text-white rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] shadow-xl shadow-accent/20 hover:bg-accent/90 transition-all"
               >
                 Entrar Agora
               </button>
             </motion.div>
           )}
 
-          <p className="mt-10 text-[10px] font-black text-text-muted uppercase tracking-[0.3em] opacity-30">
+          <p className="mt-10 text-[10px] font-bold text-text-muted uppercase tracking-[0.3em] opacity-30">
             Trackify • © 2026
           </p>
 

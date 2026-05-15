@@ -118,8 +118,8 @@ export default function SubscriptionList({ userId, onEdit, currency = 'EUR' }: S
     <div className="space-y-8">
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-black text-text-main tracking-tighter shrink-0">As Tuas Subscrições</h2>
-          <p className="text-text-muted font-black text-[11px] uppercase tracking-widest mt-1 opacity-70">Gere e monitoriza os teus serviços recorrentes</p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-text-main tracking-tighter shrink-0">As Tuas Subscrições</h2>
+          <p className="text-text-muted font-bold text-[11px] uppercase tracking-widest mt-1 opacity-70">Gere e monitoriza os teus serviços recorrentes</p>
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
@@ -130,7 +130,7 @@ export default function SubscriptionList({ userId, onEdit, currency = 'EUR' }: S
               placeholder="Pesquisar..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full sm:w-64 pl-11 pr-4 py-3 bg-card border border-border-dim rounded-2xl text-sm focus:ring-2 focus:ring-accent outline-none text-text-main transition-all placeholder:text-text-muted/30"
+              className="w-full sm:w-64 pl-12 pr-4 py-3 bg-card border border-border-dim rounded-2xl text-sm focus:ring-2 focus:ring-accent outline-none text-text-main transition-all placeholder:text-text-muted/30"
             />
           </div>
           
@@ -138,7 +138,7 @@ export default function SubscriptionList({ userId, onEdit, currency = 'EUR' }: S
             <button 
               onClick={() => setShowFilters(!showFilters)}
               className={cn(
-                "p-3 rounded-2xl border transition-all flex items-center gap-2 text-xs font-black uppercase tracking-widest",
+                "p-3 rounded-2xl border transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-widest",
                 showFilters ? "bg-accent border-accent text-white" : "bg-card border-border-dim text-text-muted hover:text-accent hover:border-accent"
               )}
             >
@@ -165,14 +165,14 @@ export default function SubscriptionList({ userId, onEdit, currency = 'EUR' }: S
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-6 bg-card border border-border-dim rounded-[2rem] shadow-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-6 bg-card border border-border-dim rounded-3xl shadow-sm">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] ml-1">Categoria</label>
+                <label className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] ml-1">Categoria</label>
                 <div className="relative">
                   <select
                     value={categoryFilter}
                     onChange={(e) => setCategoryFilter(e.target.value)}
-                    className="w-full px-4 pr-10 py-3 bg-bg border border-border-dim rounded-xl text-xs focus:ring-2 focus:ring-accent outline-none text-text-main transition-all font-black uppercase tracking-widest cursor-pointer appearance-none"
+                    className="w-full px-4 pr-10 py-3 bg-bg border border-border-dim rounded-xl text-xs focus:ring-2 focus:ring-accent outline-none text-text-main transition-all font-bold uppercase tracking-widest cursor-pointer appearance-none"
                   >
                     <option value="all">TODAS</option>
                     {categories.map(cat => (
@@ -184,12 +184,12 @@ export default function SubscriptionList({ userId, onEdit, currency = 'EUR' }: S
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] ml-1">Estado</label>
+                <label className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] ml-1">Estado</label>
                 <div className="relative">
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="w-full px-4 pr-10 py-3 bg-bg border border-border-dim rounded-xl text-xs focus:ring-2 focus:ring-accent outline-none text-text-main transition-all font-black uppercase tracking-widest cursor-pointer appearance-none"
+                    className="w-full px-4 pr-10 py-3 bg-bg border border-border-dim rounded-xl text-xs focus:ring-2 focus:ring-accent outline-none text-text-main transition-all font-bold uppercase tracking-widest cursor-pointer appearance-none"
                   >
                     <option value="all">TODOS</option>
                     <option value="active">ATIVAS</option>
@@ -200,12 +200,12 @@ export default function SubscriptionList({ userId, onEdit, currency = 'EUR' }: S
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] ml-1">Ciclo</label>
+                <label className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] ml-1">Ciclo</label>
                 <div className="relative">
                   <select
                     value={cycleFilter}
                     onChange={(e) => setCycleFilter(e.target.value)}
-                    className="w-full px-4 pr-10 py-3 bg-bg border border-border-dim rounded-xl text-xs focus:ring-2 focus:ring-accent outline-none text-text-main transition-all font-black uppercase tracking-widest cursor-pointer appearance-none"
+                    className="w-full px-4 pr-10 py-3 bg-bg border border-border-dim rounded-xl text-xs focus:ring-2 focus:ring-accent outline-none text-text-main transition-all font-bold uppercase tracking-widest cursor-pointer appearance-none"
                   >
                     <option value="all">TODOS</option>
                     <option value="monthly">MENSAL</option>
@@ -216,12 +216,12 @@ export default function SubscriptionList({ userId, onEdit, currency = 'EUR' }: S
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] ml-1">Ordenar por</label>
+                <label className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] ml-1">Ordenar por</label>
                 <div className="relative">
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
-                    className="w-full px-4 pr-10 py-3 bg-bg border border-border-dim rounded-xl text-xs focus:ring-2 focus:ring-accent outline-none text-text-main transition-all font-black uppercase tracking-widest cursor-pointer appearance-none"
+                    className="w-full px-4 pr-10 py-3 bg-bg border border-border-dim rounded-xl text-xs focus:ring-2 focus:ring-accent outline-none text-text-main transition-all font-bold uppercase tracking-widest cursor-pointer appearance-none"
                   >
                     <option value="amount-desc">MAIOR PREÇO</option>
                     <option value="amount-asc">MENOR PREÇO</option>
@@ -247,7 +247,7 @@ export default function SubscriptionList({ userId, onEdit, currency = 'EUR' }: S
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ delay: idx * 0.05 }}
               className={cn(
-                "group relative bg-card border border-border-dim rounded-[2rem] lg:rounded-[3rem] p-6 lg:p-10 hover:border-accent transition-all duration-500 hover:shadow-premium overflow-hidden",
+                "group relative bg-card border border-border-dim rounded-3xl lg:rounded-[3rem] p-6 lg:p-10 hover:border-accent transition-all duration-500 hover:shadow-premium overflow-hidden",
                 sub.status === 'cancelled' && "opacity-60 grayscale"
               )}
             >
@@ -256,16 +256,16 @@ export default function SubscriptionList({ userId, onEdit, currency = 'EUR' }: S
 
               <div className="flex justify-between items-start mb-6 lg:mb-10 relative z-10">
                 <div className="flex items-center gap-4 lg:gap-6">
-                  <div className="w-12 h-12 lg:w-16 lg:h-16 rounded-2xl lg:rounded-[2rem] bg-accent/5 border border-accent/10 flex items-center justify-center text-accent shadow-inner group-hover:bg-accent group-hover:text-white transition-all duration-300 shrink-0">
+                  <div className="w-12 h-12 lg:w-16 lg:h-16 rounded-2xl lg:rounded-3xl bg-accent/5 border border-accent/10 flex items-center justify-center text-accent shadow-inner group-hover:bg-accent group-hover:text-white transition-all duration-300 shrink-0">
                     <IconRenderer 
                       name={sub.icon || categories.find(c => c.name === sub.category)?.icon} 
                       size={24} 
                       className="transition-transform duration-500 group-hover:scale-110" 
-                      fallback={<span className="text-xl lg:text-3xl font-black">{sub.name.charAt(0)}</span>} 
+                      fallback={<span className="text-xl lg:text-3xl font-bold">{sub.name.charAt(0)}</span>} 
                     />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="text-xl lg:text-2xl font-black text-text-main tracking-tight leading-tight mb-1 lg:mb-2 group-hover:text-accent transition-colors truncate">{sub.name}</h3>
+                    <h3 className="text-xl lg:text-2xl font-bold text-text-main tracking-tight leading-tight mb-1 lg:mb-2 group-hover:text-accent transition-colors truncate">{sub.name}</h3>
                     <div className="flex items-center gap-2">
                       <div 
                         className="w-2 lg:w-2.5 h-2 lg:h-2.5 rounded-full" 
@@ -281,9 +281,9 @@ export default function SubscriptionList({ userId, onEdit, currency = 'EUR' }: S
                 <div className="flex items-end justify-between">
                   <div>
                     <p className="micro-label mb-2 lg:mb-3">Valor / Período</p>
-                    <p className="text-3xl lg:text-4xl font-black text-text-main tracking-tighter tabular-nums font-display">
+                    <p className="text-3xl lg:text-4xl font-bold text-text-main tracking-tighter tabular-nums font-display">
                       {formatCurrency(sub.amount, sub.currency || currency)}
-                      <span className="text-[10px] text-text-muted ml-1.5 lg:ml-2 font-black uppercase tracking-widest opacity-40">/{sub.billingCycle === 'monthly' ? 'mês' : 'ano'}</span>
+                      <span className="text-[10px] text-text-muted ml-1.5 lg:ml-2 font-bold uppercase tracking-widest opacity-40">/{sub.billingCycle === 'monthly' ? 'mês' : 'ano'}</span>
                     </p>
                   </div>
                 </div>
@@ -303,11 +303,11 @@ export default function SubscriptionList({ userId, onEdit, currency = 'EUR' }: S
                   <div className="text-right">
                     <p className="micro-label mb-1">Estado</p>
                     <div className="flex items-center justify-end gap-1.5 lg:gap-2">
-                      <div className={cn(
+                       <div className={cn(
                         "w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full animate-pulse",
                         sub.status === 'active' ? "bg-health" : "bg-text-muted/30"
                       )} />
-                      <p className="text-[9px] lg:text-[10px] font-black uppercase tracking-widest text-text-main">
+                      <p className="text-[9px] lg:text-[10px] font-bold uppercase tracking-widest text-text-main">
                         {sub.status === 'active' ? 'Ativo' : 'Pausado'}
                       </p>
                     </div>
@@ -317,14 +317,14 @@ export default function SubscriptionList({ userId, onEdit, currency = 'EUR' }: S
                 <div className="flex items-center gap-2 lg:gap-3">
                   <button 
                     onClick={() => onEdit(sub)}
-                    className="flex-1 py-3 lg:py-3.5 bg-bg border border-border-dim rounded-xl lg:rounded-2xl text-[9px] lg:text-[10px] font-black text-text-main uppercase tracking-[0.2em] hover:border-accent hover:text-accent transition-all active:scale-[0.98]"
+                    className="flex-1 py-3 lg:py-3.5 bg-bg border border-border-dim rounded-xl lg:rounded-2xl text-[9px] lg:text-[10px] font-bold text-text-main uppercase tracking-[0.2em] hover:border-accent hover:text-accent transition-all active:scale-[0.98]"
                   >
                     Editar
                   </button>
                   <button 
                     onClick={() => toggleStatus(sub)}
                     className={cn(
-                      "flex-1 py-3 lg:py-3.5 rounded-xl lg:rounded-2xl text-[9px] lg:text-[10px] font-black uppercase tracking-[0.2em] transition-all active:scale-[0.98] border",
+                      "flex-1 py-3 lg:py-3.5 rounded-xl lg:rounded-2xl text-[9px] lg:text-[10px] font-bold uppercase tracking-[0.2em] transition-all active:scale-[0.98] border",
                       sub.status === 'active' 
                         ? "bg-red-500/5 border-red-500/10 text-red-500 hover:bg-red-500 hover:text-white" 
                         : "bg-accent text-white border-accent hover:bg-accent/90"
@@ -343,16 +343,16 @@ export default function SubscriptionList({ userId, onEdit, currency = 'EUR' }: S
             </motion.div>
           )) : (
             <div className="col-span-full py-32 bg-card border border-dashed border-border-dim rounded-[4rem] text-center flex flex-col items-center">
-              <div className="w-20 h-20 bg-bg rounded-[2rem] flex items-center justify-center mb-6 border border-border-dim shadow-xl">
+              <div className="w-20 h-20 bg-bg rounded-3xl flex items-center justify-center mb-6 border border-border-dim shadow-xl">
                 <Search size={32} className="text-text-muted/40" />
               </div>
-              <h3 className="text-xl font-black text-text-main tracking-tight">O horizonte está limpo</h3>
+              <h3 className="text-xl font-bold text-text-main tracking-tight">O horizonte está limpo</h3>
               <p className="text-text-muted text-xs font-bold uppercase tracking-widest mt-2 max-w-xs mx-auto leading-relaxed">
                 Não encontrámos nenhuma subscrição com estes critérios. Tenta simplificar a tua pesquisa.
               </p>
               <button 
                 onClick={() => { setSearch(''); setCategoryFilter('all'); setStatusFilter('all'); setCycleFilter('all'); setSortBy('amount-desc'); }}
-                className="mt-8 text-[10px] font-black text-accent uppercase tracking-[0.3em] hover:underline"
+                className="mt-8 text-[10px] font-bold text-accent uppercase tracking-[0.3em] hover:underline"
               >
                 Limpar Filtros
               </button>

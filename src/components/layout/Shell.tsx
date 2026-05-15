@@ -156,7 +156,7 @@ export default function Shell({ user, userProfile }: ShellProps) {
 
   return (
     <div className="flex h-screen bg-bg overflow-hidden text-text-main relative">
-      {/* Mobile Overlay */}
+      {/* Mobile/Desktop Overlay */}
       <AnimatePresence>
         {isSidebarOpen && (
           <motion.div
@@ -164,25 +164,25 @@ export default function Shell({ user, userProfile }: ShellProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsSidebarOpen(false)}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] lg:hidden"
+            className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[60]"
           />
         )}
       </AnimatePresence>
 
-      {/* Sidebar - Only visible on Large screens or as a drawer on mobile */}
+      {/* Sidebar - Drawer on all screens */}
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-[70] w-72 bg-card border-r border-border-dim flex flex-col transition-transform duration-300 lg:static lg:translate-x-0 outline-none shadow-2xl lg:shadow-none",
+        "fixed inset-y-0 left-0 z-[70] w-72 bg-card border-r border-border-dim flex flex-col transition-transform duration-500 ease-in-out shadow-2xl outline-none",
         isSidebarOpen ? "translate-x-0" : "-translate-x-full"
       )}>
-        <div className="p-6 sm:p-8 flex items-center justify-between">
+        <div className="p-8 flex items-center justify-between">
           <button 
             onClick={() => {
               setActiveView('dashboard');
               setIsSidebarOpen(false);
             }}
-            className="text-2xl font-black tracking-tighter text-accent flex items-center gap-2 hover:opacity-80 transition-opacity active:scale-95 group"
+            className="text-2xl font-bold tracking-tight text-accent flex items-center gap-3 hover:opacity-80 transition-opacity active:scale-95 group"
           >
-            <div className="relative w-9 h-9 group-hover:rotate-12 transition-transform duration-500 rounded-xl overflow-hidden shadow-lg shadow-accent/20 border border-accent/20">
+            <div className="relative w-9 h-9 group-hover:rotate-6 transition-transform duration-500 rounded-xl overflow-hidden shadow-lg shadow-accent/10 border border-accent/20">
               <img 
                 src="/logo.png?v=1.3" 
                 alt="Trackify Logo" 
@@ -190,28 +190,28 @@ export default function Shell({ user, userProfile }: ShellProps) {
                 referrerPolicy="no-referrer"
               />
             </div>
-            <span className="font-display lowercase tracking-tight text-2xl">trackify.</span>
+            <span className="font-display lowercase tracking-tight text-2xl font-bold">trackify.</span>
           </button>
           <button className="lg:hidden p-2 text-text-muted hover:text-accent bg-bg rounded-xl border border-border-dim" onClick={() => setIsSidebarOpen(false)}>
             <Plus className="rotate-45" size={20} />
           </button>
         </div>
 
-        <nav className="flex-1 px-4 py-4 space-y-1.5 overflow-y-auto custom-scrollbar">
+        <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto custom-scrollbar">
           {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => handleNavigate(item.id as ViewType)}
               className={cn(
-                "w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-[13px] font-bold tracking-tight transition-all group relative",
+                "w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium tracking-tight transition-all group relative",
                 activeView === item.id 
-                  ? "bg-accent/10 text-accent border border-accent/10" 
+                  ? "bg-accent/5 text-accent border border-accent/10" 
                   : "text-text-muted hover:text-text-main hover:bg-bg border border-transparent hover:border-border-dim"
               )}
             >
               <item.icon size={18} className={cn(
                 "transition-all duration-300",
-                activeView === item.id ? "text-accent scale-110" : "text-text-muted/60 group-hover:text-text-main group-hover:scale-110"
+                activeView === item.id ? "text-accent" : "text-text-muted/60 group-hover:text-text-main"
               )} />
               {item.label}
               {activeView === item.id && (
@@ -225,16 +225,16 @@ export default function Shell({ user, userProfile }: ShellProps) {
         </nav>
 
         <div className="p-4 mt-auto space-y-4">
-          <div className="bg-accent/5 border border-accent/10 rounded-3xl p-5 hidden lg:block relative overflow-hidden group">
+          <div className="bg-accent/5 border border-accent/10 rounded-2xl p-5 hidden lg:block relative overflow-hidden group">
             <div className="absolute -right-4 -top-4 w-20 h-20 bg-accent/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
             <div className="flex items-center justify-between mb-2">
-              <p className="micro-label">Upgrade Pro</p>
-              <span className="text-[8px] font-black bg-accent/20 text-accent px-1.5 py-0.5 rounded-full uppercase tracking-widest animate-pulse">Em breve</span>
+              <p className="micro-label font-bold">Upgrade Pro</p>
+              <span className="text-[10px] font-bold bg-accent/20 text-accent px-2 py-0.5 rounded-full uppercase tracking-widest animate-pulse">Brevemente</span>
             </div>
-            <p className="text-[10px] text-text-muted mb-4 leading-relaxed font-semibold">Desbloqueia insights profundos e controlo absoluto.</p>
+            <p className="text-xs text-text-muted mb-4 leading-relaxed font-medium">Desbloqueia insights profundos e controlo absoluto.</p>
             <button 
               disabled
-              className="w-full py-2.5 bg-accent/20 text-accent/50 text-[10px] font-black rounded-xl cursor-not-allowed uppercase tracking-[0.2em]"
+              className="w-full py-2.5 bg-accent/10 text-accent/40 text-[10px] font-bold rounded-lg cursor-not-allowed uppercase tracking-widest"
             >
               INDISPONÍVEL
             </button>
@@ -242,10 +242,10 @@ export default function Shell({ user, userProfile }: ShellProps) {
 
           <button 
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-red-500/70 hover:text-red-500 hover:bg-red-500/5 transition-all group"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-500 hover:text-red-500 hover:bg-red-500/5 transition-all group"
           >
-            <LogOut size={18} className="group-hover:translate-x-1 transition-transform" />
-            Sair
+            <LogOut size={18} className="group-hover:translate-x-0.5 transition-transform" />
+            Sair da conta
           </button>
         </div>
       </aside>
@@ -253,34 +253,42 @@ export default function Shell({ user, userProfile }: ShellProps) {
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden min-w-0 pb-20 lg:pb-0">
         {/* Header */}
-        <header className="h-16 lg:h-20 bg-card border-b border-border-dim flex items-center justify-between px-4 sm:px-8 shrink-0 z-50">
-          <div className="flex items-center gap-3">
+        <header className="h-16 lg:h-20 bg-card border-b border-border-dim flex items-center px-4 sm:px-8 shrink-0 z-50 relative">
+          {/* Left Side */}
+          <div className="flex-1 flex items-center gap-3 sm:gap-4 z-10">
             <button 
               onClick={() => setIsSidebarOpen(true)}
-              className="lg:hidden p-2 text-text-muted hover:text-accent bg-bg rounded-xl border border-border-dim transition-colors"
+              className="p-2 sm:p-2.5 text-text-muted hover:text-accent bg-bg rounded-xl border border-border-dim transition-all hover:scale-105 active:scale-95 shadow-sm"
+              title="Abrir Menu"
             >
-              <div className="flex flex-col gap-1 w-5">
+              <div className="flex flex-col gap-1 w-4 sm:w-5">
                 <div className="h-0.5 w-full bg-current rounded-full" />
-                <div className="h-0.5 w-2/3 bg-current rounded-full" />
+                <div className="h-0.5 w-full bg-current rounded-full" />
                 <div className="h-0.5 w-full bg-current rounded-full" />
               </div>
             </button>
-            <div className="hidden md:flex items-center gap-4 bg-bg px-4 py-2 rounded-2xl w-64 lg:w-96 border border-border-dim focus-within:border-accent focus-within:bg-card transition-all group">
-              <Search size={16} className="text-text-muted group-focus-within:text-accent" />
+            <div className="hidden lg:flex items-center gap-3 bg-bg px-3.5 py-2.5 rounded-xl w-40 xl:w-56 border border-border-dim focus-within:border-accent focus-within:bg-card transition-all group">
+              <Search size={16} className="text-text-muted group-focus-within:text-accent shrink-0" />
               <input 
                 type="text" 
                 placeholder="Pesquisar..." 
-                className="bg-transparent border-none outline-none text-sm w-full text-text-main placeholder:text-text-muted/30"
+                className="bg-transparent border-none outline-none text-xs w-full text-text-main placeholder:text-text-muted/40"
               />
-            </div>
-            {/* Logo on mobile header */}
-            <div className="lg:hidden flex items-center gap-2">
-              <img src="/logo.png?v=1.3" alt="Logo" className="w-6 h-6 object-contain" />
-              <span className="font-display lowercase tracking-tight text-xl text-text-main">trackify.</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-4">
+          {/* LOGO - True absolute center */}
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+            <div className="flex items-center gap-x-2 group cursor-pointer pointer-events-auto" onClick={() => setActiveView('dashboard')}>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg overflow-hidden border border-accent/20 shadow-lg shadow-accent/5 transition-transform group-hover:scale-105">
+                <img src="/logo.png?v=1.3" alt="Logo" className="w-full h-full object-cover" />
+              </div>
+              <span className="font-display lowercase tracking-tight text-lg sm:text-xl text-text-main font-bold">trackify.</span>
+            </div>
+          </div>
+
+          {/* Right Side */}
+          <div className="flex-1 flex items-center justify-end gap-1.5 sm:gap-3 z-10">
             <button 
               onClick={toggleTheme}
               className="p-2 lg:p-2.5 rounded-xl bg-bg text-text-muted border border-border-dim hover:text-accent hover:border-accent transition-all animate-in fade-in zoom-in duration-300"
@@ -299,7 +307,7 @@ export default function Shell({ user, userProfile }: ShellProps) {
               >
                 <Bell size={16} />
                 {urgentAlerts.length > 0 && (
-                  <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-accent rounded-full border border-card animate-pulse shadow-lg shadow-accent/50"></div>
+                  <div className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-accent rounded-full border border-card animate-pulse shadow-lg shadow-accent/50"></div>
                 )}
               </button>
 
@@ -311,13 +319,13 @@ export default function Shell({ user, userProfile }: ShellProps) {
                       initial={{ opacity: 0, y: 10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className="absolute right-[-80px] sm:right-0 mt-4 w-[calc(100vw-32px)] sm:w-80 bg-card border border-border-dim rounded-[2rem] shadow-2xl z-50 overflow-hidden"
+                      className="absolute right-[-80px] sm:right-0 mt-4 w-[calc(100vw-32px)] sm:w-80 bg-card border border-border-dim rounded-2xl shadow-2xl z-50 overflow-hidden"
                     >
                       <div className="p-4 border-b border-border-dim flex items-center justify-between bg-card/50 backdrop-blur-xl">
-                        <h4 className="text-[10px] font-black text-text-main tracking-widest uppercase ml-1">Notificações</h4>
+                        <h4 className="text-[10px] font-bold text-text-main tracking-widest uppercase ml-1">Notificações</h4>
                         {urgentAlerts.length > 0 && (
-                          <span className="text-[8px] font-black text-accent uppercase tracking-widest bg-accent/10 px-2.5 py-1 rounded-full border border-accent/20">
-                            {urgentAlerts.length} {urgentAlerts.length === 1 ? 'Pendente' : 'Pendentes'}
+                          <span className="text-[9px] font-bold text-accent uppercase tracking-widest bg-accent/10 px-2.5 py-1 rounded-full border border-accent/20">
+                            {urgentAlerts.length}
                           </span>
                         )}
                       </div>
@@ -333,19 +341,19 @@ export default function Shell({ user, userProfile }: ShellProps) {
                                   setActiveView('subscriptions');
                                   handleEdit(sub as Subscription);
                                 }}
-                                className="w-full text-left p-3 rounded-2xl flex items-center gap-3 group hover:bg-bg transition-all active:scale-[0.98]"
+                                className="w-full text-left p-3 rounded-xl flex items-center gap-3 group hover:bg-bg transition-all active:scale-[0.98]"
                               >
                                 <div className="w-10 h-10 bg-bg rounded-xl border border-border-dim flex items-center justify-center text-accent group-hover:bg-accent group-hover:text-white transition-all shadow-sm shrink-0">
-                                  <IconRenderer name={sub.icon} size={16} fallback={<span className="font-black text-[10px]">{sub.name.charAt(0)}</span>} />
+                                  <IconRenderer name={sub.icon} size={16} fallback={<span className="font-bold text-[10px]">{sub.name.charAt(0)}</span>} />
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <div className="flex items-center justify-between gap-2">
-                                    <p className="text-[11px] font-black text-text-main truncate uppercase tracking-tight">{sub.name}</p>
-                                    <p className="text-[10px] font-black text-accent whitespace-nowrap">
+                                    <p className="text-[11px] font-bold text-text-main truncate uppercase tracking-tight">{sub.name}</p>
+                                    <p className="text-[10px] font-bold text-accent whitespace-nowrap">
                                       {formatCurrency(sub.amount, userProfile?.currency || 'EUR')}
                                     </p>
                                   </div>
-                                  <p className="text-[8px] text-text-muted font-bold mt-0.5 uppercase tracking-widest flex items-center gap-1.5 opacity-70">
+                                  <p className="text-[9px] text-text-muted font-medium mt-0.5 uppercase tracking-widest flex items-center gap-1.5 opacity-70">
                                     <AlertCircle size={9} className="text-accent" />
                                     Vence a {format(sub.nextDate, "dd 'de' MMM", { locale: pt })}
                                   </p>
@@ -355,11 +363,11 @@ export default function Shell({ user, userProfile }: ShellProps) {
                           </div>
                         ) : (
                           <div className="p-10 flex flex-col items-center text-center">
-                            <div className="w-16 h-16 bg-bg rounded-3xl flex items-center justify-center mb-4 border border-border-dim relative overflow-hidden group">
+                            <div className="w-16 h-16 bg-bg rounded-2xl flex items-center justify-center mb-4 border border-border-dim relative overflow-hidden group">
                               <Bell size={24} className="text-text-muted/20" />
                             </div>
-                            <p className="text-xs font-black text-text-main mb-1 uppercase tracking-tight">Tudo em dia!</p>
-                            <p className="text-[9px] text-text-muted font-bold uppercase tracking-widest leading-relaxed opacity-60">
+                            <p className="text-xs font-semibold text-text-main mb-1 uppercase tracking-tight">Tudo em dia!</p>
+                            <p className="text-[10px] text-text-muted font-medium uppercase tracking-widest leading-relaxed opacity-60">
                               Sem cobranças pendentes.
                             </p>
                           </div>
@@ -373,7 +381,7 @@ export default function Shell({ user, userProfile }: ShellProps) {
                               setActiveView('calendar');
                               setShowNotifications(false);
                             }}
-                            className="w-full py-2.5 bg-card border border-border-dim rounded-xl text-[8px] font-black uppercase tracking-[0.2em] text-text-muted hover:text-accent hover:border-accent transition-all"
+                            className="w-full py-2.5 bg-card border border-border-dim rounded-xl text-[9px] font-bold uppercase tracking-widest text-text-muted hover:text-accent hover:border-accent transition-all"
                           >
                             Ver Calendário
                           </button>
@@ -392,15 +400,15 @@ export default function Shell({ user, userProfile }: ShellProps) {
               className="flex items-center gap-2 hover:opacity-80 transition-opacity text-left"
             >
               <div className="text-right hidden lg:block">
-                <p className="text-sm font-black text-text-main leading-tight tracking-tight">{userProfile?.displayName || user.displayName || 'Utilizador'}</p>
+                <p className="text-sm font-bold text-text-main leading-tight tracking-tight">{userProfile?.displayName || user.displayName || 'Utilizador'}</p>
                 <p className={cn(
-                  "text-[10px] font-black uppercase tracking-widest",
+                  "text-[10px] font-semibold uppercase tracking-widest",
                   isAdmin ? "text-accent" : "text-text-muted"
                 )}>
                   {isAdmin ? 'Administrador' : (userProfile?.isPremium ? 'Premium User' : 'Standard User')}
                 </p>
               </div>
-              <div className="w-9 h-9 lg:w-10 lg:h-10 rounded-xl bg-accent overflow-hidden flex items-center justify-center text-white text-xs font-black shadow-lg shadow-accent/20 border-2 border-accent shrink-0">
+              <div className="w-9 h-9 lg:w-10 lg:h-10 rounded-xl bg-accent overflow-hidden flex items-center justify-center text-white text-xs font-bold shadow-lg shadow-accent/20 border-2 border-accent shrink-0">
                 {userProfile?.photoURL ? (
                   <img src={userProfile.photoURL} alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                 ) : (
@@ -411,7 +419,7 @@ export default function Shell({ user, userProfile }: ShellProps) {
 
             <button 
               onClick={() => setIsModalOpen(true)}
-              className="px-3 sm:px-6 py-2 lg:py-3 bg-accent text-white rounded-xl sm:rounded-2xl text-[10px] sm:text-xs font-black hover:bg-accent/90 transition-all flex items-center gap-2 shadow-xl shadow-accent/20 uppercase tracking-[0.1em] active:scale-95"
+              className="px-3 sm:px-6 py-2.5 lg:py-3 bg-accent text-white rounded-xl text-[10px] sm:text-xs font-bold hover:bg-accent/90 transition-all flex items-center gap-2 shadow-xl shadow-accent/20 uppercase tracking-widest active:scale-95"
             >
               <Plus size={16} className="shrink-0" />
               <span className="hidden sm:inline tracking-widest">Adicionar</span>
@@ -455,11 +463,11 @@ export default function Shell({ user, userProfile }: ShellProps) {
                 "mb-1 transition-transform duration-300",
                 activeView === item.id ? "scale-110" : ""
               )} />
-              <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-tighter">{item.label}</span>
+              <span className="text-[9px] font-bold uppercase tracking-tight">{item.label}</span>
               {activeView === item.id && (
                 <motion.div 
                   layoutId="bottom-indicator"
-                  className="absolute -bottom-1 w-6 sm:w-8 h-1 bg-accent rounded-full"
+                  className="absolute -bottom-1 w-8 h-1 bg-accent rounded-full"
                 />
               )}
             </button>
@@ -472,8 +480,8 @@ export default function Shell({ user, userProfile }: ShellProps) {
             )}
           >
             <Settings size={18} />
-            <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-tighter">Definições</span>
-            {activeView === 'settings' && <div className="absolute -bottom-1 w-6 sm:w-8 h-1 bg-accent rounded-full" />}
+            <span className="text-[9px] font-bold uppercase tracking-tight">Definições</span>
+            {activeView === 'settings' && <div className="absolute -bottom-1 w-8 h-1 bg-accent rounded-full" />}
           </button>
         </nav>
       </main>
