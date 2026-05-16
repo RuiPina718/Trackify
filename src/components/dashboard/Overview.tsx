@@ -41,6 +41,8 @@ export default function Dashboard({ userId, userProfile, onNavigate }: Dashboard
   const [aiInsights, setAiInsights] = useState<AIInsight[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
+  const [localConfig, setLocalConfig] = useState<DashboardConfig | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const dashboardConfig = useMemo(() => {
     const defaultConfig: DashboardConfig = {
@@ -59,15 +61,33 @@ export default function Dashboard({ userId, userProfile, onNavigate }: Dashboard
     return userProfile?.dashboardConfig || defaultConfig;
   }, [userProfile?.dashboardConfig]);
 
-  const toggleSection = async (section: keyof DashboardConfig['sections']) => {
-    const newConfig = {
-      ...dashboardConfig,
+  const handleOpenConfig = () => {
+    setLocalConfig(JSON.parse(JSON.stringify(dashboardConfig)));
+    setShowConfigModal(true);
+  };
+
+  const handleSaveConfig = async () => {
+    if (!localConfig) return;
+    setIsSaving(true);
+    try {
+      await updateUserProfile(userId, { dashboardConfig: localConfig });
+      setShowConfigModal(false);
+    } catch (err) {
+      console.error('Erro ao salvar configuração:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const toggleLocalSection = (section: keyof DashboardConfig['sections']) => {
+    if (!localConfig) return;
+    setLocalConfig({
+      ...localConfig,
       sections: {
-        ...dashboardConfig.sections,
-        [section]: !dashboardConfig.sections[section]
+        ...localConfig.sections,
+        [section]: !localConfig.sections[section]
       }
-    };
-    await updateUserProfile(userId, { dashboardConfig: newConfig });
+    });
   };
 
   useEffect(() => {
@@ -304,7 +324,7 @@ export default function Dashboard({ userId, userProfile, onNavigate }: Dashboard
           </div>
         </div>
         <button 
-          onClick={() => setShowConfigModal(true)}
+          onClick={handleOpenConfig}
           className="flex items-center gap-2 px-4 py-2 bg-card border border-border-dim rounded-xl text-[10px] font-bold uppercase tracking-widest hover:border-accent transition-all w-full sm:w-auto justify-center"
         >
           <SlidersHorizontal size={14} />
@@ -314,94 +334,114 @@ export default function Dashboard({ userId, userProfile, onNavigate }: Dashboard
 
       {/* Config Modal */}
       <AnimatePresence>
-        {showConfigModal && (
-          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+        {showConfigModal && localConfig && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 lg:p-6 bg-slate-950/80 backdrop-blur-xl">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowConfigModal(false)}
-              className="absolute inset-0 bg-slate-950/60 backdrop-blur-md"
+              className="absolute inset-0"
             />
             <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              initial={{ opacity: 0, scale: 0.9, y: 30 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative bg-card border border-border-dim w-full max-w-md overflow-hidden rounded-[2.5rem] shadow-2xl"
+              exit={{ opacity: 0, scale: 0.9, y: 30 }}
+              className="relative bg-card border border-border-dim w-full max-w-2xl overflow-hidden rounded-[2.5rem] shadow-2xl flex flex-col max-h-[90vh]"
             >
-              <div className="p-8">
-                <div className="flex items-center justify-between mb-8">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center text-accent">
-                      <Layout size={20} />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-text-main tracking-tight uppercase leading-none">Personalizar Dashboard</h3>
-                      <p className="text-[9px] text-text-muted font-bold uppercase tracking-widest mt-1">Gere o que queres visualizar</p>
-                    </div>
+              <div className="p-8 lg:p-10 border-b border-border-dim flex items-center justify-between shrink-0 bg-card/50 backdrop-blur-md">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center text-accent shadow-inner">
+                    <Layout size={24} />
                   </div>
-                  <button 
-                    onClick={() => setShowConfigModal(false)}
-                    className="p-2 hover:bg-bg text-text-muted rounded-full transition-all"
-                  >
-                    <X size={20} />
-                  </button>
+                  <div>
+                    <h3 className="text-xl lg:text-2xl font-bold text-text-main tracking-tight font-display lowercase leading-none">Personalizar Dashboard</h3>
+                    <p className="text-[10px] text-text-muted font-bold uppercase tracking-widest mt-2 opacity-60">Personaliza a tua visibilidade e layout</p>
+                  </div>
                 </div>
+                <button 
+                  onClick={() => setShowConfigModal(false)}
+                  className="w-10 h-10 rounded-full bg-bg border border-border-dim flex items-center justify-center text-text-muted hover:text-text-main hover:border-accent transition-all duration-300"
+                >
+                  <X size={20} />
+                </button>
+              </div>
 
+              <div className="p-8 lg:p-10 overflow-y-auto flex-1 custom-scrollbar bg-bg/20">
                 <div className="space-y-4">
                   {[
-                    { id: 'monthlyExpense', label: 'Despesa Mensal (Principal)', desc: 'Visualização da despesa total estimada' },
-                    { id: 'budget', label: 'Budget & Projeção', desc: 'Progresso do limite mensal e propostas anuais' },
-                    { id: 'categories', label: 'Distribuição por Categoria', desc: 'Gráficos de barras por tipo de serviço' },
-                    { id: 'upcoming', label: 'Próximos Pagamentos', desc: 'O que vais pagar nos próximos dias' },
-                    { id: 'topSpending', label: 'Top Subscrições', desc: 'As tuas subscrições mais caras' },
-                    { id: 'cycleBreakdown', label: 'Ciclos de Faturação', desc: 'Resumo de Mensal vs Anual' },
-                    { id: 'calendar', label: 'Calendário de Vencimentos', desc: 'Dias do mês com mais pagamentos' },
-                    { id: 'insights', label: 'Insights de IA', desc: 'Sugestões geradas por inteligência artificial' },
-                    { id: 'indicators', label: 'Indicadores de Performance', desc: 'Fadiga financeira e poupança sugerida' },
+                    { id: 'monthlyExpense', label: 'Despesa Mensal Principal', desc: 'Visualização da despesa total estimada para o mês corrente.' },
+                    { id: 'budget', label: 'Budget & Projeção Anual', desc: 'Monitorização de limites e comparativos com planos anuais.' },
+                    { id: 'categories', label: 'Distribuição por Categorias', desc: 'Visualização gráfica do destino dos teus investimentos.' },
+                    { id: 'upcoming', label: 'Próximos Pagamentos (7 dias)', desc: 'Lista prioritária das cobranças mais iminentes.' },
+                    { id: 'topSpending', label: 'TOP 5 Subscrições', desc: 'Foco nas subscrições que mais impactam o teu orçamento.' },
+                    { id: 'cycleBreakdown', label: 'Mix de Faturação', desc: 'Análise entre compromissos mensais e anuais.' },
+                    { id: 'calendar', label: 'Mapa Térmico de Fluxo', desc: 'Visualização dos dias do mês com maior densidade de pagamentos.' },
+                    { id: 'insights', label: 'Insights AI Trackify', desc: 'Sugestões inteligentes para otimização baseadas nos teus dados.' },
+                    { id: 'indicators', label: 'Saúde & Eficiência', desc: 'Nível de fadiga financeira e potencial de poupança.' },
                   ].map((item) => (
                     <button
                       key={item.id}
-                      onClick={() => toggleSection(item.id as any)}
+                      onClick={() => toggleLocalSection(item.id as any)}
                       className={cn(
-                        "w-full p-5 rounded-2xl border transition-all text-left flex items-center justify-between group",
-                        dashboardConfig.sections[item.id as keyof typeof dashboardConfig.sections]
-                          ? "bg-accent/5 border-accent/20"
-                          : "bg-bg border-border-dim hover:border-text-muted/30"
+                        "w-full p-6 rounded-3xl border transition-all duration-300 text-left flex items-start justify-between group",
+                        localConfig.sections[item.id as keyof typeof localConfig.sections]
+                          ? "bg-accent/[0.03] border-accent/20 shadow-sm"
+                          : "bg-bg/50 border-border-dim hover:border-text-muted/20"
                       )}
                     >
-                      <div className="min-w-0">
+                      <div className="min-w-0 pr-4">
                         <p className={cn(
-                          "text-[10px] font-bold uppercase tracking-widest mb-1 transition-colors",
-                          dashboardConfig.sections[item.id as keyof typeof dashboardConfig.sections] ? "text-accent" : "text-text-main"
+                          "text-[11px] font-bold uppercase tracking-tight mb-1.5 transition-colors",
+                          localConfig.sections[item.id as keyof typeof localConfig.sections] ? "text-accent" : "text-text-main"
                         )}>
                           {item.label}
                         </p>
-                        <p className="text-[10px] text-text-muted font-bold normal-case opacity-60 leading-tight">
+                        <p className="text-[10px] text-text-muted font-bold normal-case opacity-40 leading-relaxed max-w-[90%]">
                           {item.desc}
                         </p>
                       </div>
                       <div className={cn(
-                        "w-10 h-6 rounded-full relative transition-colors flex items-center px-1 shrink-0 ml-4",
-                        dashboardConfig.sections[item.id as keyof typeof dashboardConfig.sections] ? "bg-accent" : "bg-border-dim"
+                        "w-12 h-7 rounded-full relative transition-all duration-500 flex items-center px-1 shrink-0 mt-1",
+                        localConfig.sections[item.id as keyof typeof localConfig.sections] ? "bg-accent shadow-lg shadow-accent/20" : "bg-border-dim/40"
                       )}>
                         <motion.div 
-                          animate={{ x: dashboardConfig.sections[item.id as keyof typeof dashboardConfig.sections] ? 16 : 0 }}
-                          className="w-4 h-4 bg-white rounded-full shadow-sm"
-                        />
+                          animate={{ x: localConfig.sections[item.id as keyof typeof localConfig.sections] ? 20 : 0 }}
+                          transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                          className="w-5 h-5 bg-white rounded-full shadow-md flex items-center justify-center"
+                        >
+                           {localConfig.sections[item.id as keyof typeof localConfig.sections] && <div className="w-1 h-1 rounded-full bg-accent animate-pulse" />}
+                        </motion.div>
                       </div>
                     </button>
                   ))}
                 </div>
+              </div>
 
-                <div className="mt-8 pt-8 border-t border-border-dim">
-                  <button 
-                    onClick={() => setShowConfigModal(false)}
-                    className="w-full py-4 bg-accent text-white rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] shadow-xl shadow-accent/20 hover:bg-accent/90 transition-all active:scale-[0.98]"
-                  >
-                    Guardar Alterações
-                  </button>
-                </div>
+              <div className="p-8 lg:p-10 border-t border-border-dim bg-card shrink-0 flex gap-4">
+                <button 
+                  onClick={() => setShowConfigModal(false)}
+                  className="flex-1 py-5 bg-bg text-text-muted border border-border-dim rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] transition-all hover:bg-border-dim/20 hover:text-text-main active:scale-[0.98]"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  disabled={isSaving}
+                  onClick={handleSaveConfig}
+                  className="flex-[2] py-5 bg-accent text-white rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] shadow-xl shadow-accent/20 transition-all hover:translate-y-[-2px] active:translate-y-0 active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50"
+                >
+                  {isSaving ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                      <span>A GUARDAR...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>GRAVAR ALTERAÇÕES</span>
+                      <ArrowRight size={14} className="opacity-60" />
+                    </>
+                  )}
+                </button>
               </div>
             </motion.div>
           </div>
