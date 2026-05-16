@@ -258,11 +258,12 @@ async function syncSingleSubscription(userId: string, subscriptionId: string, re
     const month = (subData.billingMonth || 1) - 1;
     nextDate = new Date(today.getFullYear(), month, subData.billingDay);
     if (nextDate < today) nextDate.setFullYear(today.getFullYear() + 1);
-  } else if (subData.billingCycle === 'weekly') {
-    const start = new Date(subData.startDate);
+  } else if (subData.billingCycle === 'weekly' || subData.billingCycle === 'biweekly') {
+    const start = new Date(subData.startDate || today);
     nextDate = new Date(start);
+    const daysToAdd = subData.billingCycle === 'weekly' ? 7 : 14;
     while (nextDate < today) {
-      nextDate.setDate(nextDate.getDate() + 7);
+      nextDate.setDate(nextDate.getDate() + daysToAdd);
     }
   } else {
     nextDate = new Date(today.getFullYear(), today.getMonth(), subData.billingDay);
