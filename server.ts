@@ -3,463 +3,216 @@ import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { google } from 'googleapis';
-import { initializeApp } from 'firebase/app';
-import { 
-  getFirestore, 
-  collection, 
-  doc, 
-  setDoc, 
-  getDoc, 
-  getDocs, 
-  query, 
-  where, 
-  limit, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  writeBatch,
-  serverTimestamp,
-  FieldValue
-} from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
+import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
-import fs from 'fs';
 
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Find firebase config in dist or root
-let firebaseConfigPath = path.join(__dirname, 'firebase-applet-config.json');
-if (!fs.existsSync(firebaseConfigPath)) {
-  firebaseConfigPath = path.join(process.cwd(), 'firebase-applet-config.json');
+const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+if (!supabaseUrl || !supabaseServiceKey) {
+  console.warn('Missing Supabase env vars — calendar sync endpoints will not work.');
 }
 
-const firebaseConfig = JSON.parse(fs.readFileSync(firebaseConfigPath, 'utf8'));
+// Service role client bypasses RLS for server-side operations
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 console.log('--- Server Startup ---');
-console.log('Project ID:', firebaseConfig.projectId);
-console.log('Database ID:', firebaseConfig.firestoreDatabaseId);
-
-// Initialize Firebase Client SDK for backend (to use API Key and Rules)
-const firebaseApp = initializeApp(firebaseConfig);
-const db = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId);
-
-console.log('Firebase initialized using Client SDK for database:', firebaseConfig.firestoreDatabaseId);
+console.log('Supabase URL:', supabaseUrl || '(not set)');
 
 const app = express();
 const PORT = 3000;
 
 app.use(express.json());
-
-// Serve static assets from public folder
 app.use(express.static(path.join(process.cwd(), 'public')));
 
-app.get('/api/health', async (req, res) => {
-  res.json({ 
-    status: 'ok', 
-    version: '1.3-bust',
-    projectId: firebaseConfig.projectId,
-    databaseId: firebaseConfig.firestoreDatabaseId,
-    env: process.env.NODE_ENV
-  });
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok', version: '2.0-supabase', env: process.env.NODE_ENV });
 });
 
-// Google OAuth Configuration
+// ── Google OAuth ──────────────────────────────────────────────────────────────
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-  // We'll construct the redirect URI dynamically based on the request host
 );
 
 const SCOPES = ['https://www.googleapis.com/auth/calendar.events', 'email', 'profile'];
 
-// Helper to get Redirect URI
 const getRedirectUri = (req: express.Request) => {
   const host = req.headers['x-forwarded-host'] || req.headers.host;
-  
-  // Ensure we don't have double slashes if host ends with /
-  const cleanHost = host?.toString().replace(/\/$/, '');
-  
-  // Force https as the environment is always served over HTTPS and Google requires it
-  return `https://${cleanHost}/auth/callback`;
+  return `https://${host?.toString().replace(/\/$/, '')}/auth/callback`;
 };
 
-// API Routes
 app.get('/api/debug/redirect-uri', (req, res) => {
-  res.json({ 
-    redirectUri: getRedirectUri(req),
-    headers: {
-      host: req.headers.host,
-      'x-forwarded-proto': req.headers['x-forwarded-proto'],
-      'x-forwarded-host': req.headers['x-forwarded-host']
-    }
-  });
+  res.json({ redirectUri: getRedirectUri(req) });
 });
 
 app.get('/api/auth/google/url', (req, res) => {
   const redirectUri = getRedirectUri(req);
-  console.log('Generating Google Auth URL with Redirect URI:', redirectUri);
   const authUrl = oauth2Client.generateAuthUrl({
-    access_type: 'offline', // Required to get a refresh token
+    access_type: 'offline',
     scope: SCOPES,
     prompt: 'consent',
     redirect_uri: redirectUri,
-    state: req.query.userId as string, // Pass userId in state to link account
+    state: req.query.userId as string,
   });
   res.json({ url: authUrl });
 });
 
 app.get(['/auth/callback', '/auth/callback/'], async (req, res) => {
   const { code, state: userId } = req.query;
-  
-  if (!code || !userId) {
-    return res.status(400).send('Missing code or userId');
-  }
+  if (!code || !userId) return res.status(400).send('Missing code or userId');
 
   try {
-    const redirectUri = getRedirectUri(req);
-    
-    // Create a fresh client for token exchange to ensure redirect_uri consistency
     const callbackClient = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      redirectUri
+      getRedirectUri(req)
     );
-
     const { tokens } = await callbackClient.getToken(code as string);
 
     if (tokens.refresh_token) {
-      console.log(`Attempting to save refresh token for user: ${userId} to database: ${firebaseConfig.firestoreDatabaseId}`);
-      try {
-        // Store the refresh token securely in Firestore using Client SDK
-        const integrationRef = doc(db, 'calendar_integrations', userId as string);
-        await setDoc(integrationRef, {
-          userId,
-          refreshToken: tokens.refresh_token,
-          status: 'connected',
-          updatedAt: serverTimestamp(),
-          createdAt: serverTimestamp(),
-        }, { merge: true });
-        console.log('Successfully saved to Firestore');
-      } catch (dbError: any) {
-        console.error('Firestore operation failed:', dbError);
-        throw new Error(`Firestore Error: ${dbError.message} (Status: ${dbError.code || 'unknown'})`);
-      }
+      await supabase.from('calendar_integrations').upsert({
+        user_id: userId,
+        refresh_token: tokens.refresh_token,
+        status: 'connected',
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' });
     }
 
-    // Return success page that closes itself
-    res.send(`
-      <html>
-        <body style="font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; background: #0f172a; color: white;">
-          <div style="text-align: center;">
-            <h1 style="color: #22c55e;">Sincronização Ativada!</h1>
-            <p>O Google Calendar foi ligado com sucesso ao Trackify.</p>
-            <p>Esta janela irá fechar automaticamente...</p>
-            <script>
-              setTimeout(() => {
-                if (window.opener) {
-                  window.opener.postMessage({ type: 'CALENDAR_SYNC_SUCCESS' }, '*');
-                  window.close();
-                } else {
-                  window.location.href = '/';
-                }
-              }, 2000);
-            </script>
-          </div>
-        </body>
-      </html>
-    `);
+    res.send(`<html><body style="font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;background:#0f172a;color:white;">
+      <div style="text-align:center;">
+        <h1 style="color:#22c55e;">Sincronização Ativada!</h1>
+        <p>O Google Calendar foi ligado com sucesso ao Trackify.</p>
+        <script>setTimeout(()=>{ if(window.opener){window.opener.postMessage({type:'CALENDAR_SYNC_SUCCESS'},'*');window.close();}else{window.location.href='/';} },2000);</script>
+      </div></body></html>`);
   } catch (error: any) {
-    console.error('Error during OAuth callback:', error);
-    res.status(500).send(`
-      <html>
-        <body style="font-family: sans-serif; padding: 20px; background: #0f172a; color: white;">
-          <h1 style="color: #ef4444;">Erro de Autenticação</h1>
-          <p>Não foi possível completar a ligação ao Google Calendar.</p>
-          <div style="background: #1e293b; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <p><strong>Erro:</strong> ${error.message}</p>
-            <p><strong>User ID:</strong> ${userId || 'Não recebido'}</p>
-            <p><strong>Project ID:</strong> ${firebaseConfig.projectId}</p>
-            <p><strong>Database:</strong> ${firebaseConfig.firestoreDatabaseId}</p>
-          </div>
-          <button onclick="window.close()" style="background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">Fechar Janela</button>
-        </body>
-      </html>
-    `);
+    res.status(500).send(`<html><body style="padding:20px;background:#0f172a;color:white;"><h1 style="color:#ef4444;">Erro de Autenticação</h1><p>${error.message}</p></body></html>`);
   }
 });
 
-// Helper function to delete a calendar event
-async function deleteCalendarEvent(userId: string, subscriptionId: string, refreshToken: string) {
-  const eventsColl = collection(db, 'calendar_events');
-  const q = query(eventsColl, where('subscriptionId', '==', subscriptionId), limit(1));
-  const eventMappingSnapshot = await getDocs(q);
-  
-  if (eventMappingSnapshot.empty) return;
-
-  const mapping = eventMappingSnapshot.docs[0];
-  const googleEventId = mapping.data().googleEventId;
-
-  const userOAuth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET
-  );
-  userOAuth2Client.setCredentials({ refresh_token: refreshToken });
-  const calendar = google.calendar({ version: 'v3', auth: userOAuth2Client });
-
-  try {
-    await calendar.events.delete({
-      calendarId: 'primary',
-      eventId: googleEventId,
-    });
-  } catch (err: any) {
-    if (err.code !== 404) console.error('Error deleting google event:', err);
-  }
-
-  await deleteDoc(mapping.ref);
+// ── Calendar Sync ─────────────────────────────────────────────────────────────
+async function getRefreshToken(userId: string): Promise<string | null> {
+  const { data } = await supabase.from('calendar_integrations').select('refresh_token').eq('user_id', userId).single();
+  return data?.refresh_token ?? null;
 }
 
-// Helper function to sync a single subscription to Google Calendar
+async function deleteCalendarEvent(userId: string, subscriptionId: string, refreshToken: string) {
+  const { data: mapping } = await supabase.from('calendar_events')
+    .select('id, google_event_id').eq('subscription_id', subscriptionId).single();
+  if (!mapping) return;
+
+  const client = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
+  client.setCredentials({ refresh_token: refreshToken });
+  const calendar = google.calendar({ version: 'v3', auth: client });
+
+  try {
+    await calendar.events.delete({ calendarId: 'primary', eventId: mapping.google_event_id });
+  } catch (err: any) {
+    if (err.code !== 404) console.error('Error deleting Google event:', err);
+  }
+  await supabase.from('calendar_events').delete().eq('id', mapping.id);
+}
+
 async function syncSingleSubscription(userId: string, subscriptionId: string, refreshToken: string) {
-  // 1. Get Subscription
-  const subRef = doc(db, 'subscriptions', subscriptionId);
-  const subDoc = await getDoc(subRef);
-  
-  // If subscription doesn't exist or is not active, remove from calendar
-  if (!subDoc.exists() || subDoc.data()?.status !== 'active') {
+  const { data: sub } = await supabase.from('subscriptions').select('*').eq('id', subscriptionId).single();
+
+  if (!sub || sub.status !== 'active') {
     await deleteCalendarEvent(userId, subscriptionId, refreshToken);
     return;
   }
-  
-  const subData = subDoc.data()!;
 
-  // 2. Setup Google Calendar Client
-  const userOAuth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET
-  );
-  userOAuth2Client.setCredentials({ refresh_token: refreshToken });
-  const calendar = google.calendar({ version: 'v3', auth: userOAuth2Client });
+  const client = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
+  client.setCredentials({ refresh_token: refreshToken });
+  const calendar = google.calendar({ version: 'v3', auth: client });
 
-  // 3. Check if we already have an event
-  const eventsColl = collection(db, 'calendar_events');
-  const q = query(eventsColl, where('subscriptionId', '==', subscriptionId), limit(1));
-  const eventMappingSnapshot = await getDocs(q);
-  
-  let existingMapping = !eventMappingSnapshot.empty ? eventMappingSnapshot.docs[0] : null;
-
-  // 4. Prepare Event Data
-  let nextDate: Date;
   const today = new Date();
-  
-  if (subData.billingCycle === 'yearly' || subData.billingCycle === 'annual') {
-    const month = (subData.billingMonth || 1) - 1;
-    nextDate = new Date(today.getFullYear(), month, subData.billingDay);
+  let nextDate: Date;
+
+  if (sub.billing_cycle === 'yearly' || sub.billing_cycle === 'annual') {
+    const month = (sub.billing_month || 1) - 1;
+    nextDate = new Date(today.getFullYear(), month, sub.billing_day);
     if (nextDate < today) nextDate.setFullYear(today.getFullYear() + 1);
-  } else if (subData.billingCycle === 'weekly' || subData.billingCycle === 'biweekly') {
-    const start = new Date(subData.startDate || today);
+  } else if (sub.billing_cycle === 'weekly' || sub.billing_cycle === 'biweekly') {
+    const start = new Date(sub.start_date || today);
     nextDate = new Date(start);
-    const daysToAdd = subData.billingCycle === 'weekly' ? 7 : 14;
-    while (nextDate < today) {
-      nextDate.setDate(nextDate.getDate() + daysToAdd);
-    }
+    const days = sub.billing_cycle === 'weekly' ? 7 : 14;
+    while (nextDate < today) nextDate.setDate(nextDate.getDate() + days);
   } else {
-    nextDate = new Date(today.getFullYear(), today.getMonth(), subData.billingDay);
+    nextDate = new Date(today.getFullYear(), today.getMonth(), sub.billing_day);
     if (nextDate < today) nextDate.setMonth(nextDate.getMonth() + 1);
   }
 
   const event = {
-    summary: `Pagamento — ${subData.name}`,
-    description: `Cobrança recorrente ${subData.billingCycle} de ${subData.amount} ${subData.currency}`,
-    start: {
-      date: nextDate.toISOString().split('T')[0],
-    },
-    end: {
-      date: nextDate.toISOString().split('T')[0],
-    },
-    reminders: {
-      useDefault: false,
-      overrides: [
-        { method: 'popup', minutes: 24 * 60 }, // 1 day before
-        { method: 'email', minutes: 2 * 24 * 60 }, // 2 days before
-      ],
-    },
+    summary: `Pagamento — ${sub.name}`,
+    description: `Cobrança recorrente ${sub.billing_cycle} de ${sub.amount} ${sub.currency}`,
+    start: { date: nextDate.toISOString().split('T')[0] },
+    end:   { date: nextDate.toISOString().split('T')[0] },
+    reminders: { useDefault: false, overrides: [{ method: 'popup', minutes: 1440 }, { method: 'email', minutes: 2880 }] },
   };
 
-  if (existingMapping) {
-    const googleEventId = existingMapping.data().googleEventId;
+  const { data: existing } = await supabase.from('calendar_events').select('id, google_event_id').eq('subscription_id', subscriptionId).single();
+
+  if (existing) {
     try {
-      await calendar.events.update({
-        calendarId: 'primary',
-        eventId: googleEventId,
-        requestBody: event,
-      });
+      await calendar.events.update({ calendarId: 'primary', eventId: existing.google_event_id, requestBody: event });
     } catch (err: any) {
       if (err.code === 404) {
-        // Event deleted in Google, recreate
-        const newEvent = await calendar.events.insert({
-          calendarId: 'primary',
-          requestBody: event,
-        });
-        await updateDoc(existingMapping.ref, { 
-          googleEventId: newEvent.data.id,
-          lastSyncedAt: serverTimestamp()
-        });
-      } else {
-        throw err;
-      }
+        const newEventRes = await calendar.events.insert({ calendarId: 'primary', requestBody: event });
+        await supabase.from('calendar_events').update({ google_event_id: newEventRes.data.id, last_synced_at: new Date().toISOString() }).eq('id', existing.id);
+      } else throw err;
     }
   } else {
-    const newEvent = await calendar.events.insert({
-      calendarId: 'primary',
-      requestBody: event,
-    });
-    await addDoc(collection(db, 'calendar_events'), {
-      userId,
-      subscriptionId,
-      googleEventId: newEvent.data.id,
-      lastSyncedAt: serverTimestamp(),
+    const newEventRes = await calendar.events.insert({ calendarId: 'primary', requestBody: event });
+    await supabase.from('calendar_events').insert({
+      user_id: userId,
+      subscription_id: subscriptionId,
+      google_event_id: newEventRes.data.id,
     });
   }
 }
 
-// Sync Subscription to Google Calendar
 app.post('/api/calendar/sync-subscription', async (req, res) => {
   const { userId, subscriptionId } = req.body;
-
-  if (!userId || !subscriptionId) {
-    return res.status(400).json({ error: 'Missing userId or subscriptionId' });
-  }
-
+  if (!userId || !subscriptionId) return res.status(400).json({ error: 'Missing userId or subscriptionId' });
+  const token = await getRefreshToken(userId);
+  if (!token) return res.status(404).json({ error: 'Calendar not connected' });
   try {
-    const integrationRef = doc(db, 'calendar_integrations', userId);
-    const integrationDoc = await getDoc(integrationRef);
-    if (!integrationDoc.exists()) {
-      return res.status(404).json({ error: 'Calendar integration not found' });
-    }
-    const { refreshToken } = integrationDoc.data()!;
-
-    await syncSingleSubscription(userId, subscriptionId, refreshToken);
-
-    // Update integration lastSyncAt
-    await updateDoc(doc(db, 'calendar_integrations', userId), {
-      lastSyncAt: serverTimestamp(),
-    });
-
+    await syncSingleSubscription(userId, subscriptionId, token);
     res.json({ success: true });
-  } catch (error) {
-    console.error('Error syncing to calendar:', error);
-    res.status(500).json({ error: 'Failed to sync with Google Calendar' });
-  }
-});
-
-// Sync All Subscriptions to Google Calendar
-app.post('/api/calendar/sync-all', async (req, res) => {
-  const { userId } = req.body;
-  if (!userId) return res.status(400).json({ error: 'Missing userId' });
-
-  try {
-    const integrationRef = doc(db, 'calendar_integrations', userId);
-    const integrationDoc = await getDoc(integrationRef);
-    if (!integrationDoc.exists()) {
-      return res.status(404).json({ error: 'Calendar integration not found' });
-    }
-    const { refreshToken } = integrationDoc.data()!;
-
-    // Get all active subscriptions for the user
-    const subsRef = collection(db, 'subscriptions');
-    const q = query(subsRef, where('userId', '==', userId), where('status', '==', 'active'));
-    const subsSnapshot = await getDocs(q);
-
-    console.log(`Syncing ${subsSnapshot.size} subscriptions for user ${userId}`);
-
-    // Sync each one in sequence (to avoid rate limits and complexity)
-    for (const subDoc of subsSnapshot.docs) {
-      try {
-        await syncSingleSubscription(userId, subDoc.id, refreshToken);
-      } catch (err) {
-        console.error(`Failed to sync subscription ${subDoc.id}:`, err);
-      }
-    }
-
-    // Update integration lastSyncAt
-    await updateDoc(doc(db, 'calendar_integrations', userId), {
-      lastSyncAt: serverTimestamp(),
-    });
-
-    res.json({ success: true, count: subsSnapshot.size });
-  } catch (error) {
-    console.error('Error syncing all subscriptions:', error);
-    res.status(500).json({ error: 'Failed to sync all subscriptions' });
-  }
-});
-
-async function disconnectCalendar(userId: string) {
-  await deleteDoc(doc(db, 'calendar_integrations', userId));
-  
-  const eventsColl = collection(db, 'calendar_events');
-  const q = query(eventsColl, where('userId', '==', userId));
-  const eventsSnapshot = await getDocs(q);
-  
-  const batch = writeBatch(db);
-  eventsSnapshot.docs.forEach(d => batch.delete(d.ref));
-  await batch.commit();
-}
-
-app.post('/api/calendar/disconnect', async (req, res) => {
-  const { userId } = req.body;
-  if (!userId) return res.status(400).json({ error: 'Missing userId' });
-  try {
-    await disconnectCalendar(userId);
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Error disconnecting calendar:', error);
-    res.status(500).json({ error: 'Failed to disconnect' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
   }
 });
 
 app.post('/api/calendar/delete-event', async (req, res) => {
   const { userId, subscriptionId } = req.body;
   if (!userId || !subscriptionId) return res.status(400).json({ error: 'Missing userId or subscriptionId' });
-
+  const token = await getRefreshToken(userId);
+  if (!token) return res.status(404).json({ error: 'Calendar not connected' });
   try {
-    const integrationRef = doc(db, 'calendar_integrations', userId);
-    const integrationDoc = await getDoc(integrationRef);
-    if (!integrationDoc.exists()) return res.json({ success: true }); 
-
-    const { refreshToken } = integrationDoc.data()!;
-    await deleteCalendarEvent(userId, subscriptionId, refreshToken);
-    
+    await deleteCalendarEvent(userId, subscriptionId, token);
     res.json({ success: true });
-  } catch (error) {
-    console.error('Error in delete-event:', error);
-    res.status(500).json({ error: 'Failed to delete event' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
   }
 });
 
-// Vite middleware for development
-if (process.env.NODE_ENV !== 'production') {
-  const vite = await createViteServer({
-    server: { 
-      middlewareMode: true,
-      hmr: {
-        port: 24679 // Try a different port for HMR if 24678 is stuck
-      }
-    },
-    appType: 'spa',
-  });
-  app.use(vite.middlewares);
-} else {
-  const distPath = __dirname;
-  app.use(express.static(distPath));
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(distPath, 'index.html'));
-  });
-}
-
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+app.post('/api/calendar/disconnect', async (req, res) => {
+  const { userId } = req.body;
+  if (!userId) return res.status(400).json({ error: 'Missing userId' });
+  await supabase.from('calendar_integrations').delete().eq('user_id', userId);
+  res.json({ success: true });
 });
 
+// ── Vite Dev Server ───────────────────────────────────────────────────────────
+async function startServer() {
+  const vite = await createViteServer({ server: { middlewareMode: true }, appType: 'spa' });
+  app.use(vite.middlewares);
+  app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+}
+startServer();

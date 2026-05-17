@@ -1,19 +1,14 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import { useState, useEffect } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth, db } from './lib/firebase';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
+import { supabase } from './lib/supabase';
+import type { User } from '@supabase/supabase-js';
 import AuthScreens from './components/auth/AuthScreens';
 import Shell from './components/layout/Shell';
 import MaintenanceView from './components/MaintenanceView';
 import { subscribeToAppConfig } from './services/configService';
 import { subscribeToUserProfile } from './services/userService';
 import { AppConfig, UserProfile } from './types';
+import { ADMIN_EMAIL } from './lib/config';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -24,54 +19,26 @@ export default function App() {
   const [showLoginDuringMaintenance, setShowLoginDuringMaintenance] = useState(false);
 
   useEffect(() => {
-    // Force document title in case of caching or overrides
-    document.title = "Trackify - Gestão Inteligente";
-    
-    // 1. Subscribe to App Config
-    const unsubConfig = subscribeToAppConfig((newConfig) => {
-      setAppConfig(newConfig);
-    });
+    document.title = 'Trackify - Gestão Inteligente';
 
-    // 2. Auth State Change
-    const unsubscribeAuth = onAuthStateChanged(auth, async (authUser) => {
-      if (authUser) {
-        // Ensure user profile exists
-        const userRef = doc(db, 'users', authUser.uid);
-        const userSnap = await getDoc(userRef);
-        if (!userSnap.exists()) {
-          await setDoc(userRef, {
-            email: authUser.email,
-            displayName: authUser.displayName || '',
-            createdAt: serverTimestamp(),
-            currency: 'EUR',
-            isAdmin: false,
-            isPremium: false
-          });
-        }
-        setUser(authUser);
-        setShowLoginDuringMaintenance(false); // Hide login if successful
-      } else {
-        setUser(null);
-        setUserProfile(null);
-        setBypassMaintenance(false);
-      }
+    const unsubConfig = subscribeToAppConfig(setAppConfig);
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      if (!session?.user) setUserProfile(null);
       setLoading(false);
     });
 
     return () => {
       unsubConfig();
-      unsubscribeAuth();
+      subscription.unsubscribe();
     };
   }, []);
 
-  // 3. Subscribe to User Profile when user is logged in
   useEffect(() => {
-    if (user) {
-      const unsubProfile = subscribeToUserProfile(user.uid, (profile) => {
-        setUserProfile(profile);
-      });
-      return () => unsubProfile();
-    }
+    if (!user) return;
+    const unsub = subscribeToUserProfile(user.id, setUserProfile);
+    return unsub;
   }, [user]);
 
   if (loading || !appConfig) {
@@ -83,19 +50,16 @@ export default function App() {
     );
   }
 
-  // Maintenance Mode Logic
   if (appConfig.maintenanceMode) {
-    const isAdmin = !!(userProfile?.isAdmin || user?.email?.toLowerCase().trim() === 'ruialexandrepina@gmail.com');
+    const isAdmin = !!(userProfile?.isAdmin || user?.email?.toLowerCase().trim() === ADMIN_EMAIL);
     const canEnter = isAdmin && appConfig.allowAdminsDuringMaintenance;
 
-    // Automatic bypass for admins
     if (!canEnter && !bypassMaintenance) {
-      // Show Login Screen if requested during maintenance
       if (showLoginDuringMaintenance && !user) {
         return (
           <div className="min-h-screen bg-bg">
             <div className="fixed top-6 left-6 z-50">
-              <button 
+              <button
                 onClick={() => setShowLoginDuringMaintenance(false)}
                 className="px-4 py-2 bg-card border border-border-dim rounded-xl text-[10px] font-bold uppercase tracking-widest hover:border-accent transition-all"
               >
@@ -108,8 +72,8 @@ export default function App() {
       }
 
       return (
-        <MaintenanceView 
-          message={appConfig.maintenanceMessage} 
+        <MaintenanceView
+          message={appConfig.maintenanceMessage}
           isAdmin={isAdmin && appConfig.allowAdminsDuringMaintenance}
           onEnterAnyway={() => setBypassMaintenance(true)}
           onStaffLogin={() => setShowLoginDuringMaintenance(true)}
@@ -118,10 +82,7 @@ export default function App() {
     }
   }
 
-  if (!user) {
-    return <AuthScreens />;
-  }
+  if (!user) return <AuthScreens />;
 
   return <Shell user={user} userProfile={userProfile} />;
 }
-
