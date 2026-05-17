@@ -16,6 +16,7 @@ import {
 import { db, OperationType, handleFirestoreError } from '../lib/firebase';
 import { Subscription } from '../types';
 import { createLog } from './auditService';
+import { API_BASE_URL } from '../lib/config';
 
 const COLLECTION_NAME = 'subscriptions';
 
@@ -75,10 +76,11 @@ export const createSubscription = async (data: Omit<Subscription, 'id' | 'create
     triggerCalendarSync(data.userId, docRef.id).catch(console.error);
     
     await createLog('Subscription Created', docRef.id, 'subscription', `Nova subscrição adicionada: ${data.name}`);
-    
+
     return docRef.id;
   } catch (error) {
     handleFirestoreError(error, OperationType.CREATE, COLLECTION_NAME);
+    throw error;
   }
 };
 
@@ -101,7 +103,7 @@ export const updateSubscription = async (id: string, userId: string, data: Parti
 
 const triggerCalendarSync = async (userId: string, subscriptionId: string) => {
   try {
-    const response = await fetch('/api/calendar/sync-subscription', {
+    const response = await fetch(`${API_BASE_URL}/api/calendar/sync-subscription`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, subscriptionId }),
@@ -115,7 +117,7 @@ const triggerCalendarSync = async (userId: string, subscriptionId: string) => {
 
 const triggerCalendarDelete = async (userId: string, subscriptionId: string) => {
   try {
-    const response = await fetch('/api/calendar/delete-event', {
+    const response = await fetch(`${API_BASE_URL}/api/calendar/delete-event`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, subscriptionId }),

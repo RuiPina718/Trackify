@@ -19,7 +19,7 @@ import { subscribeToUserSubscriptions } from '../../services/subscriptionService
 import { generateAIInsights, AIInsight } from '../../services/geminiService';
 import { Subscription, UserProfile, DashboardConfig } from '../../types';
 import { useUnifiedCategories } from '../../hooks/useUnifiedCategories';
-import { formatCurrency, cn } from '../../lib/utils';
+import { formatCurrency, cn, isYearlyCycle } from '../../lib/utils';
 import { format, addDays } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'motion/react';
@@ -125,7 +125,7 @@ export default function Dashboard({ userId, userProfile, onNavigate }: Dashboard
     const active = subscriptions.filter(s => s.status === 'active');
     const monthlyTotal = active.reduce((acc, s) => {
       let amount = s.amount;
-      if (s.billingCycle === 'yearly' || s.billingCycle === 'annual') {
+      if (isYearlyCycle(s.billingCycle)) {
         amount = s.amount / 12;
       } else if (s.billingCycle === 'weekly') {
         amount = s.amount * (52 / 12);
@@ -141,7 +141,7 @@ export default function Dashboard({ userId, userProfile, onNavigate }: Dashboard
     const categories: Record<string, number> = {};
     active.forEach(s => {
       let amount = s.amount;
-      if (s.billingCycle === 'yearly' || s.billingCycle === 'annual') {
+      if (isYearlyCycle(s.billingCycle)) {
         amount = s.amount / 12;
       } else if (s.billingCycle === 'weekly') {
         amount = s.amount * (52 / 12);
@@ -163,7 +163,7 @@ export default function Dashboard({ userId, userProfile, onNavigate }: Dashboard
     const upcoming = active.map(s => {
       let nextDate: Date;
       
-      if (s.billingCycle === 'yearly' || s.billingCycle === 'annual') {
+      if (isYearlyCycle(s.billingCycle)) {
         const month = (s.billingMonth || 1) - 1;
         nextDate = new Date(today.getFullYear(), month, s.billingDay);
         if (nextDate < today) nextDate.setFullYear(today.getFullYear() + 1);
@@ -190,7 +190,7 @@ export default function Dashboard({ userId, userProfile, onNavigate }: Dashboard
 
     const topSubscriptions = [...active].sort((a, b) => {
       const getMonthlyValue = (s: Subscription) => {
-        if (s.billingCycle === 'yearly' || s.billingCycle === 'annual') return s.amount / 12;
+        if (isYearlyCycle(s.billingCycle)) return s.amount / 12;
         if (s.billingCycle === 'weekly') return s.amount * (52 / 12);
         if (s.billingCycle === 'biweekly') return s.amount * (26 / 12);
         return s.amount;
@@ -200,11 +200,11 @@ export default function Dashboard({ userId, userProfile, onNavigate }: Dashboard
 
     const cycleStats = {
       monthly: active.filter(s => s.billingCycle === 'monthly'),
-      yearly: active.filter(s => s.billingCycle === 'yearly' || s.billingCycle === 'annual'),
+      yearly: active.filter(s => isYearlyCycle(s.billingCycle)),
       weekly: active.filter(s => s.billingCycle === 'weekly'),
       biweekly: active.filter(s => s.billingCycle === 'biweekly'),
       monthlyTotal: active.filter(s => s.billingCycle === 'monthly').reduce((acc, s) => acc + s.amount, 0),
-      yearlyTotal: active.filter(s => s.billingCycle === 'yearly' || s.billingCycle === 'annual').reduce((acc, s) => acc + s.amount, 0)
+      yearlyTotal: active.filter(s => isYearlyCycle(s.billingCycle)).reduce((acc, s) => acc + s.amount, 0)
     };
 
     const calendarMap: Record<number, number> = {};

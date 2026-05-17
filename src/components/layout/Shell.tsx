@@ -16,7 +16,8 @@ import {
   Moon,
   AlertCircle
 } from 'lucide-react';
-import { cn, formatCurrency } from '../../lib/utils';
+import { cn, formatCurrency, isYearlyCycle } from '../../lib/utils';
+import { ADMIN_EMAIL } from '../../lib/config';
 import { motion, AnimatePresence } from 'motion/react';
 import { Subscription, UserProfile } from '../../types';
 import Dashboard from '../dashboard/Overview';
@@ -73,7 +74,7 @@ export default function Shell({ user, userProfile }: ShellProps) {
     const upcoming = active.map(s => {
       let nextDate: Date;
       
-      if (s.billingCycle === 'yearly' || s.billingCycle === 'annual') {
+      if (isYearlyCycle(s.billingCycle)) {
         const month = (s.billingMonth || 1) - 1;
         nextDate = new Date(today.getFullYear(), month, s.billingDay);
         if (nextDate < today) nextDate.setFullYear(today.getFullYear() + 1);
@@ -132,8 +133,7 @@ export default function Shell({ user, userProfile }: ShellProps) {
   const isAdmin = useMemo(() => {
     if (!user) return false;
     const userEmail = (user.email || '').toLowerCase().trim();
-    // Allow hardcoded admin OR Firestore flag
-    return userEmail === 'ruialexandrepina@gmail.com' || userProfile?.isAdmin === true;
+    return userEmail === ADMIN_EMAIL || userProfile?.isAdmin === true;
   }, [user.email, userProfile?.isAdmin]);
 
   const navItems = useMemo(() => {

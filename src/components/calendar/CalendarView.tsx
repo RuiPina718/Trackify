@@ -4,7 +4,7 @@ import { Subscription } from '../../types';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, getDay } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, Info } from 'lucide-react';
-import { cn, formatCurrency } from '../../lib/utils';
+import { cn, formatCurrency, isYearlyCycle } from '../../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface CalendarViewProps {
@@ -178,7 +178,7 @@ export default function CalendarView({ userId, currency = 'EUR' }: CalendarViewP
                     </div>
                     <div className="text-right shrink-0">
                       <p className="text-sm font-bold text-text-main tabular-nums">{formatCurrency(s.amount, s.currency || currency)}</p>
-                      <p className="text-[9px] font-bold text-accent uppercase tracking-widest mt-1">{s.billingCycle === 'yearly' ? 'Anual' : 'Mensal'}</p>
+                      <p className="text-[9px] font-bold text-accent uppercase tracking-widest mt-1">{isYearlyCycle(s.billingCycle) ? 'Anual' : 'Mensal'}</p>
                     </div>
                   </div>
                 ))}
