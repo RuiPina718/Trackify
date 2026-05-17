@@ -14,6 +14,7 @@ import MaintenanceView from './components/MaintenanceView';
 import { subscribeToAppConfig } from './services/configService';
 import { subscribeToUserProfile } from './services/userService';
 import { AppConfig, UserProfile } from './types';
+import { ADMIN_EMAIL } from './lib/config';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -85,7 +86,7 @@ export default function App() {
 
   // Maintenance Mode Logic
   if (appConfig.maintenanceMode) {
-    const isAdmin = !!(userProfile?.isAdmin || user?.email?.toLowerCase().trim() === 'ruialexandrepina@gmail.com');
+    const isAdmin = !!(userProfile?.isAdmin || user?.email?.toLowerCase().trim() === ADMIN_EMAIL);
     const canEnter = isAdmin && appConfig.allowAdminsDuringMaintenance;
 
     // Automatic bypass for admins

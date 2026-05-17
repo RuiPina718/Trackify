@@ -6,7 +6,7 @@ import { createSubscription, updateSubscription } from '../../services/subscript
 import { createCategory } from '../../services/categoryService';
 import { useUnifiedCategories } from '../../hooks/useUnifiedCategories';
 import { SUBSCRIPTION_TEMPLATES, SubscriptionTemplate } from '../../constants/templates';
-import { cn } from '../../lib/utils';
+import { cn, isYearlyCycle } from '../../lib/utils';
 
 import { IconRenderer } from '../ui/IconRenderer';
 
@@ -88,7 +88,7 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
     setLoading(true);
     try {
       const billingCycleValue = formData.billingCycle;
-      const isYearlyOrAnnual = billingCycleValue === 'yearly' || billingCycleValue === 'annual';
+      const isYearlyOrAnnual = isYearlyCycle(billingCycleValue);
       
       const subscriptionData: any = {
         name: formData.name,
@@ -257,7 +257,7 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
                     </div>
                   </div>
 
-                  <div className={cn("grid gap-3 sm:gap-4", (formData.billingCycle === 'yearly' || formData.billingCycle === 'annual') ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-2")}>
+                  <div className={cn("grid gap-3 sm:gap-4", (isYearlyCycle(formData.billingCycle)) ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-2")}>
                     <div>
                       <label className="block text-[10px] font-bold text-text-muted uppercase tracking-widest mb-1.5 sm:mb-2 ml-1">Dia</label>
                       <div className="relative">
@@ -274,7 +274,7 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
                       </div>
                     </div>
 
-                    {(formData.billingCycle === 'yearly' || formData.billingCycle === 'annual') && (
+                    {(isYearlyCycle(formData.billingCycle)) && (
                       <div>
                         <label className="block text-[10px] font-bold text-text-muted uppercase tracking-widest mb-1.5 sm:mb-2 ml-1">Mês</label>
                         <div className="relative">
@@ -301,7 +301,7 @@ export default function AddSubscriptionModal({ isOpen, onClose, userId, editSubs
                       </div>
                     )}
 
-                    <div className={cn((formData.billingCycle === 'yearly' || formData.billingCycle === 'annual') ? "col-span-2 sm:col-span-1" : "")}>
+                    <div className={cn((isYearlyCycle(formData.billingCycle)) ? "col-span-2 sm:col-span-1" : "")}>
                       <label className="block text-[10px] font-bold text-text-muted uppercase tracking-widest mb-1.5 sm:mb-2 ml-1">Ciclo</label>
                       <div className="relative">
                         <select

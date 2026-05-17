@@ -116,7 +116,7 @@ Mantém as tuas respostas curtas, profissionais e úteis. Usa português de Port
             billingCycle: (args.billingCycle === 'anual' || args.billingCycle === 'yearly' || args.billingCycle === 'annual') ? 'yearly' : 'monthly',
             category: String(args.category || 'Outros'),
             billingDay: billingDay,
-            billingMonth: (args.billingCycle === 'anual' || args.billingCycle === 'yearly' || args.billingCycle === 'annual') ? (billingMonth || (new Date().getMonth() + 1)) : null,
+            billingMonth: (args.billingCycle === 'anual' || args.billingCycle === 'yearly' || args.billingCycle === 'annual') ? (billingMonth || (new Date().getMonth() + 1)) : undefined,
             status: 'active',
             startDate: new Date().toISOString().split('T')[0]
           });

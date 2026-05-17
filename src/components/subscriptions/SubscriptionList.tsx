@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { subscribeToUserSubscriptions, deleteSubscription, updateSubscription } from '../../services/subscriptionService';
 import { Subscription, PREDEFINED_CATEGORIES } from '../../types';
-import { formatCurrency, cn } from '../../lib/utils';
+import { formatCurrency, cn, isYearlyCycle } from '../../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { exportSubscriptionsToCSV } from '../../lib/exportUtils';
 import { useUnifiedCategories } from '../../hooks/useUnifiedCategories';
@@ -293,7 +293,7 @@ export default function SubscriptionList({ userId, onEdit, currency = 'EUR' }: S
                         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
                         let nextDate: Date;
                         
-                        if (sub.billingCycle === 'yearly' || sub.billingCycle === 'annual') {
+                        if (isYearlyCycle(sub.billingCycle)) {
                           const month = (sub.billingMonth || 1) - 1;
                           nextDate = new Date(today.getFullYear(), month, sub.billingDay);
                           if (nextDate < today) nextDate.setFullYear(today.getFullYear() + 1);

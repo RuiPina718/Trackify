@@ -18,7 +18,7 @@ import { IconRenderer } from '../ui/IconRenderer';
 import { subscribeToUserSubscriptions } from '../../services/subscriptionService';
 import { Subscription } from '../../types';
 import { useUnifiedCategories } from '../../hooks/useUnifiedCategories';
-import { formatCurrency, cn } from '../../lib/utils';
+import { formatCurrency, cn, isYearlyCycle } from '../../lib/utils';
 import { subMonths, format, startOfMonth, endOfMonth, isBefore, parseISO, addDays } from 'date-fns';
 import { pt } from 'date-fns/locale';
 
@@ -53,7 +53,7 @@ export default function AnalyticsView({ userId, currency = 'EUR' }: AnalyticsVie
     // Monthly total calculation (as baseline)
     const monthlyTotal = activeSubs.reduce((acc, s) => {
       let amount = s.amount;
-      if (s.billingCycle === 'yearly' || s.billingCycle === 'annual') amount = s.amount / 12;
+      if (isYearlyCycle(s.billingCycle)) amount = s.amount / 12;
       return acc + amount;
     }, 0);
 
@@ -68,7 +68,7 @@ export default function AnalyticsView({ userId, currency = 'EUR' }: AnalyticsVie
         const start = s.startDate ? parseISO(s.startDate) : new Date(0);
         if (isBefore(start, mEnd)) {
           let amount = s.amount;
-          if (s.billingCycle === 'yearly' || s.billingCycle === 'annual') amount = s.amount / 12;
+          if (isYearlyCycle(s.billingCycle)) amount = s.amount / 12;
           return acc + amount;
         }
         return acc;
@@ -107,7 +107,7 @@ export default function AnalyticsView({ userId, currency = 'EUR' }: AnalyticsVie
         .filter(s => s.category === cat.name)
         .reduce((acc, s) => {
           let amount = s.amount;
-          if (s.billingCycle === 'yearly' || s.billingCycle === 'annual') amount = s.amount / 12;
+          if (isYearlyCycle(s.billingCycle)) amount = s.amount / 12;
           return acc + amount;
         }, 0);
       
@@ -121,8 +121,8 @@ export default function AnalyticsView({ userId, currency = 'EUR' }: AnalyticsVie
     }).filter(c => c.value > 0).sort((a, b) => b.value - a.value);
 
     const topSubs = [...activeSubs].sort((a, b) => {
-      const valA = (a.billingCycle === 'yearly' || a.billingCycle === 'annual') ? a.amount / 12 : a.amount;
-      const valB = (b.billingCycle === 'yearly' || b.billingCycle === 'annual') ? b.amount / 12 : b.amount;
+      const valA = isYearlyCycle(a.billingCycle) ? a.amount / 12 : a.amount;
+      const valB = isYearlyCycle(b.billingCycle) ? b.amount / 12 : b.amount;
       return valB - valA;
     }).slice(0, 5);
 
