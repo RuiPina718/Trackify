@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { User, signOut } from 'firebase/auth';
-import { auth } from '../../lib/firebase';
+import type { User } from '@supabase/supabase-js';
+import { supabase } from '../../lib/supabase';
 import { 
   LayoutDashboard, 
   CreditCard, 
@@ -17,6 +17,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { cn, formatCurrency } from '../../lib/utils';
+import { ADMIN_EMAIL } from '../../lib/config';
 import { motion, AnimatePresence } from 'motion/react';
 import { Subscription, UserProfile } from '../../types';
 import Dashboard from '../dashboard/Overview';
@@ -57,11 +58,11 @@ export default function Shell({ user, userProfile }: ShellProps) {
   }, [userProfile?.theme]);
 
   useEffect(() => {
-    const unsub = subscribeToUserSubscriptions(user.uid, (subs) => {
+    const unsub = subscribeToUserSubscriptions(user.id, (subs) => {
       setSubscriptions(subs);
     }, (error) => console.error('Error fetching subscriptions for notifications:', error));
     return () => unsub();
-  }, [user.uid]);
+  }, [user.id]);
 
   const urgentAlerts = useMemo(() => {
     if (!userProfile?.notifications?.billingReminders) return [];
@@ -101,7 +102,7 @@ export default function Shell({ user, userProfile }: ShellProps) {
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
 
     try {
-      await updateUserProfile(user.uid, { theme: newTheme });
+      await updateUserProfile(user.id, { theme: newTheme });
     } catch (error) {
       console.error('Error updating theme:', error);
       setLocalTheme(localTheme);
@@ -133,7 +134,7 @@ export default function Shell({ user, userProfile }: ShellProps) {
     if (!user) return false;
     const userEmail = (user.email || '').toLowerCase().trim();
     // Allow hardcoded admin OR Firestore flag
-    return userEmail === 'ruialexandrepina@gmail.com' || userProfile?.isAdmin === true;
+    return userEmail === ADMIN_EMAIL || userProfile?.isAdmin === true;
   }, [user.email, userProfile?.isAdmin]);
 
   const navItems = useMemo(() => {
@@ -152,7 +153,7 @@ export default function Shell({ user, userProfile }: ShellProps) {
     return items;
   }, [isAdmin]);
 
-  const handleLogout = () => signOut(auth);
+  const handleLogout = () => supabase.auth.signOut();
 
   return (
     <div className="flex h-screen bg-bg overflow-hidden text-text-main relative">
@@ -416,7 +417,7 @@ export default function Shell({ user, userProfile }: ShellProps) {
               className="flex items-center gap-2 hover:opacity-80 transition-opacity text-left"
             >
               <div className="text-right hidden lg:block">
-                <p className="text-sm font-bold text-text-main leading-tight tracking-tight">{userProfile?.displayName || user.displayName || 'Utilizador'}</p>
+                <p className="text-sm font-bold text-text-main leading-tight tracking-tight">{userProfile?.displayName || user.user_metadata?.full_name || 'Utilizador'}</p>
                 <p className={cn(
                   "text-[10px] font-semibold uppercase tracking-widest",
                   isAdmin ? "text-accent" : "text-text-muted"
@@ -428,7 +429,7 @@ export default function Shell({ user, userProfile }: ShellProps) {
                 {userProfile?.photoURL ? (
                   <img src={userProfile.photoURL} alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                 ) : (
-                  (userProfile?.displayName || user.displayName || 'U').charAt(0).toUpperCase()
+                  (userProfile?.displayName || user.user_metadata?.full_name || 'U').charAt(0).toUpperCase()
                 )}
               </div>
             </button>
@@ -454,10 +455,10 @@ export default function Shell({ user, userProfile }: ShellProps) {
               transition={{ duration: 0.2 }}
               className="max-w-7xl mx-auto"
             >
-              {activeView === 'dashboard' && <Dashboard userId={user.uid} userProfile={userProfile} onNavigate={handleNavigate} />}
-              {activeView === 'subscriptions' && <SubscriptionList userId={user.uid} onEdit={handleEdit} currency={userProfile?.currency} />}
-              {activeView === 'calendar' && <CalendarView userId={user.uid} currency={userProfile?.currency} />}
-              {activeView === 'analytics' && <AnalyticsView userId={user.uid} currency={userProfile?.currency} />}
+              {activeView === 'dashboard' && <Dashboard userId={user.id} userProfile={userProfile} onNavigate={handleNavigate} />}
+              {activeView === 'subscriptions' && <SubscriptionList userId={user.id} onEdit={handleEdit} currency={userProfile?.currency} />}
+              {activeView === 'calendar' && <CalendarView userId={user.id} currency={userProfile?.currency} />}
+              {activeView === 'analytics' && <AnalyticsView userId={user.id} currency={userProfile?.currency} />}
               {activeView === 'admin' && isAdmin && <AdminDashboard />}
               {activeView === 'settings' && <SettingsView user={user} initialTab={settingsTab as any} />}
             </motion.div>
@@ -505,11 +506,11 @@ export default function Shell({ user, userProfile }: ShellProps) {
       <AddSubscriptionModal 
         isOpen={isModalOpen} 
         onClose={handleCloseModal} 
-        userId={user.uid} 
+        userId={user.id} 
         editSubscription={editSubscription}
         defaultCurrency={userProfile?.currency}
       />
-      <Chatbot userId={user.uid} />
+      <Chatbot userId={user.id} />
     </div>
   );
 }

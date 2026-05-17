@@ -1,63 +1,55 @@
-import { 
-  collection, 
-  addDoc, 
-  query, 
-  orderBy, 
-  limit, 
-  onSnapshot,
-  Timestamp,
-  doc,
-  getDoc
-} from 'firebase/firestore';
-import { db, auth } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 import { AuditLog } from '../types';
 
-/**
- * Logs an action to the audit logs collection.
- */
 export const createLog = async (
-  action: string, 
-  targetId: string, 
-  targetType: string, 
+  action: string,
+  targetId: string,
+  targetType: string,
   details: string,
   metadata?: Record<string, any>
 ): Promise<void> => {
   try {
-    const user = auth.currentUser;
-    const logData = {
-      userId: user?.uid || 'system',
-      userEmail: user?.email || 'system',
+    const { data: { user } } = await supabase.auth.getUser();
+    await supabase.from('audit_logs').insert({
+      user_id:     user?.id    ?? 'system',
+      user_email:  user?.email ?? 'system',
       action,
-      targetId,
-      targetType,
+      target_id:   targetId,
+      target_type: targetType,
       details,
-      timestamp: new Date().toISOString(),
-      metadata: metadata || {}
-    };
-
-    await addDoc(collection(db, 'audit_logs'), logData);
+      metadata:    metadata ?? {},
+    });
   } catch (error) {
     console.error('Error creating audit log:', error);
   }
 };
 
-/**
- * Subscribes to the latest audit logs.
- */
-export const subscribeToLogs = (callback: (logs: AuditLog[]) => void, maxLogs: number = 50) => {
-  const logsQuery = query(
-    collection(db, 'audit_logs'),
-    orderBy('timestamp', 'desc'),
-    limit(maxLogs)
-  );
+export const subscribeToLogs = (callback: (logs: AuditLog[]) => void, maxLogs = 50) => {
+  const fetch = async () => {
+    const { data } = await supabase
+      .from('audit_logs')
+      .select('*')
+      .order('timestamp', { ascending: false })
+      .limit(maxLogs);
+    callback((data ?? []).map(row => ({
+      id:         row.id,
+      userId:     row.user_id,
+      userEmail:  row.user_email,
+      action:     row.action,
+      targetId:   row.target_id,
+      targetType: row.target_type,
+      details:    row.details,
+      timestamp:  row.timestamp,
+      metadata:   row.metadata,
+    } as AuditLog)));
+  };
 
-  return onSnapshot(logsQuery, (snapshot) => {
-    const logs = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as AuditLog));
-    callback(logs);
-  }, (error) => {
-    console.error('Error in subscribeToLogs:', error);
-  });
+  fetch();
+
+  const channel = supabase
+    .channel('audit-logs')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'audit_logs' }, fetch)
+    .subscribe();
+
+  return () => { supabase.removeChannel(channel); };
 };

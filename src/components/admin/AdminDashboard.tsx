@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { collection, getDocs, query, orderBy, where, writeBatch, doc, onSnapshot } from 'firebase/firestore';
-import { db, auth as firebaseAuth } from '../../lib/firebase';
+import { supabase } from '../../lib/supabase';
 import { UserProfile, Subscription } from '../../types';
 import { 
   Users, CreditCard, Activity, ShieldCheck, Mail, LogIn, 
@@ -11,7 +10,6 @@ import {
 import { format, subMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'motion/react';
-import { sendPasswordResetEmail } from 'firebase/auth';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
@@ -251,7 +249,7 @@ const AdminDashboard: React.FC = () => {
 
   const handleResetPassword = async (email: string) => {
     try {
-      await sendPasswordResetEmail(firebaseAuth, email);
+      await supabase.auth.resetPasswordForEmail(email);
       showStatus(`Email de recuperação enviado para ${email}`, 'success');
     } catch (error: any) {
       showStatus(`Erro: ${error.message}`, 'error');
@@ -276,10 +274,18 @@ const AdminDashboard: React.FC = () => {
       }
     );
 
-    const unsubSubs = onSnapshot(collection(db, 'subscriptions'), (snapshot) => {
-      const subsList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Subscription));
-      setAllSubscriptions(subsList);
-    });
+    const fetchAllSubs = async () => {
+      const { data } = await supabase.from('subscriptions').select('*');
+      if (data) setAllSubscriptions(data.map(r => ({
+        id: r.id, userId: r.user_id, name: r.name, icon: r.icon,
+        amount: r.amount, currency: r.currency, billingCycle: r.billing_cycle,
+        billingDay: r.billing_day, billingMonth: r.billing_month,
+        category: r.category, status: r.status, startDate: r.start_date,
+        createdAt: r.created_at, updatedAt: r.updated_at,
+      } as Subscription)));
+    };
+    fetchAllSubs();
+    const unsubSubs = () => {};
 
     const unsubConfig = subscribeToAppConfig((newConfig) => {
       setAppConfig(newConfig);

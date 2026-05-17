@@ -1,11 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  User, 
-  sendPasswordResetEmail, 
-  reauthenticateWithCredential, 
-  EmailAuthProvider, 
-  updatePassword 
-} from 'firebase/auth';
+import type { User } from '@supabase/supabase-js';
+import { supabase } from '../../lib/supabase';
 import { UserProfile, NotificationPreferences, Category, PREDEFINED_CATEGORIES } from '../../types';
 import { getUserProfile, updateUserProfile, createUserProfile, deleteUserProfile } from '../../services/userService';
 import { 
@@ -58,8 +53,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
 import { exportUserDataToJSON } from '../../lib/exportUtils';
-import { collection, getDocs, query, where, writeBatch, doc } from 'firebase/firestore';
-import { db, auth } from '../../lib/firebase';
+import { getUserSubscriptions } from '../../services/subscriptionService';
 import { useUnifiedCategories } from '../../hooks/useUnifiedCategories';
 import { updateCategory, deleteCategory, createCategory } from '../../services/categoryService';
 import { IconRenderer } from '../ui/IconRenderer';
@@ -105,7 +99,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
   const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab || 'account');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const { categories: displayCategories, userCategories, loading: categoriesLoading } = useUnifiedCategories(user.uid);
+  const { categories: displayCategories, userCategories, loading: categoriesLoading } = useUnifiedCategories(user.id);
   const [displayName, setDisplayName] = useState('');
   const [photoURL, setPhotoURL] = useState('');
   const [bio, setBio] = useState('');
@@ -154,7 +148,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const p = await getUserProfile(user.uid);
+        const p = await getUserProfile(user.id);
         if (p) {
           setProfile(p);
           setDisplayName(p.displayName || '');
@@ -180,13 +174,9 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
   useEffect(() => {
     const fetchCalendarIntegration = async () => {
       try {
-        const docSnap = await getDocs(query(collection(db, 'calendar_integrations'), where('userId', '==', user.uid)));
-        if (!docSnap.empty) {
-          const data = docSnap.docs[0].data();
-          setCalendarIntegration({
-            status: data.status,
-            lastSyncAt: data.lastSyncAt?.toDate?.()?.toISOString() || data.lastSyncAt || ''
-          });
+        const { data } = await supabase.from('calendar_integrations').select('*').eq('user_id', user.id).single();
+        if (data) {
+          setCalendarIntegration({ status: data.status, lastSyncAt: data.updated_at || '' });
         }
       } catch (error) {
         console.error('Error fetching calendar integration:', error);
@@ -211,7 +201,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
     setSaving(true);
     setMessage(null);
     try {
-      await updateUserProfile(user.uid, {
+      await updateUserProfile(user.id, {
         displayName,
         photoURL,
         bio,
@@ -237,7 +227,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
     setSaving(true);
     try {
       // 1. Delete Firestore Data using the centralized service
-      await deleteUserProfile(user.uid);
+      await deleteUserProfile(user.id);
       
       // 2. Show Success Modal instead of immediate redirect
       setShowDeleteModal(false);
@@ -254,20 +244,11 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
   const finalizeAccountDeletion = async () => {
     setSaving(true);
     try {
-      // 3. Finally delete the Auth User
-      await user.delete();
+      await supabase.auth.signOut();
       window.location.href = '/';
     } catch (error: any) {
-      console.error('Error deleting auth user:', error);
-      if (error.code === 'auth/requires-recent-login') {
-        setMessage({ type: 'error', text: 'Esta acção requer que tenhas feito login recentemente. Por favor, faz login de novo para confirmar a eliminação total.' });
-        // Even if auth delete fails, the data is gone. We should probably sign out anyway.
-        await auth.signOut();
-        window.location.href = '/';
-      } else {
-        await auth.signOut();
-        window.location.href = '/';
-      }
+      console.error('Error during account deletion signout:', error);
+      window.location.href = '/';
     } finally {
       setSaving(false);
     }
@@ -277,9 +258,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
     if (!profile) return;
     setSaving(true);
     try {
-      const q = query(collection(db, 'subscriptions'), where('userId', '==', user.uid));
-      const querySnapshot = await getDocs(q);
-      const subscriptions = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+      const subscriptions = await getUserSubscriptions(user.id);
       exportUserDataToJSON(profile, subscriptions);
       setMessage({ type: 'success', text: 'Dados exportados com sucesso!' });
       setTimeout(() => setMessage(null), 3000);
@@ -305,12 +284,10 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
 
     setPasswordLoading(true);
     try {
-      // Re-authenticate user
-      const credential = EmailAuthProvider.credential(user.email || '', oldPassword);
-      await reauthenticateWithCredential(user, credential);
-      
-      // Update password
-      await updatePassword(user, newPassword);
+      const { error: signInErr } = await supabase.auth.signInWithPassword({ email: user.email || '', password: oldPassword });
+      if (signInErr) throw { code: 'auth/wrong-password' };
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
       
       setMessage({ type: 'success', text: 'Palavra-passe alterada com sucesso!' });
       setIsChangingPassword(false);
@@ -334,7 +311,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
 
   const handlePasswordReset = async () => {
     try {
-      await sendPasswordResetEmail(auth, user.email || '');
+      await supabase.auth.resetPasswordForEmail(user.email || '');
       setMessage({ type: 'success', text: 'Email de recuperação enviado!' });
       setTimeout(() => setMessage(null), 3000);
     } catch (error) {
@@ -345,7 +322,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
   const handleConnectCalendar = async () => {
     setCalendarLoading(true);
     try {
-      const response = await fetch(`/api/auth/google/url?userId=${user.uid}`);
+      const response = await fetch(`/api/auth/google/url?userId=${user.id}`);
       if (!response.ok) throw new Error('Falha ao obter URL de autenticação');
       const { url } = await response.json();
       
@@ -373,7 +350,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
       const response = await fetch('/api/calendar/disconnect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.uid }),
+        body: JSON.stringify({ userId: user.id }),
       });
       
       if (!response.ok) throw new Error('Falha ao desligar o calendário');
@@ -396,7 +373,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
       const response = await fetch('/api/calendar/sync-all', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.uid }),
+        body: JSON.stringify({ userId: user.id }),
       });
       
       if (!response.ok) throw new Error('Falha ao sincronizar');
@@ -406,14 +383,8 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
       setTimeout(() => setMessage(null), 3000);
       
       // Refresh integration status
-      const docSnap = await getDocs(query(collection(db, 'calendar_integrations'), where('userId', '==', user.uid)));
-      if (!docSnap.empty) {
-        const data = docSnap.docs[0].data();
-        setCalendarIntegration({
-          status: data.status,
-          lastSyncAt: data.lastSyncAt?.toDate?.()?.toISOString() || data.lastSyncAt || ''
-        });
-      }
+      const { data } = await supabase.from('calendar_integrations').select('*').eq('user_id', user.id).single();
+      if (data) setCalendarIntegration({ status: data.status, lastSyncAt: data.updated_at || '' });
     } catch (error) {
       console.error('Error syncing all:', error);
       setMessage({ type: 'error', text: 'Erro ao sincronizar subscrições.' });
@@ -429,7 +400,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
         // Mode: Edit
         if (!categoryToEdit.userId) {
           // Predefined override
-          await createCategory(user.uid, catData.name, catData.color, categoryToEdit.id, catData.icon);
+          await createCategory(user.id, catData.name, catData.color, categoryToEdit.id, catData.icon);
         } else {
           // Update custom/override
           const oldName = categoryToEdit.name;
@@ -437,14 +408,10 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
 
           if (oldName !== catData.name) {
             try {
-              const subsRef = collection(db, 'subscriptions');
-              const q = query(subsRef, where('userId', '==', user.uid), where('category', '==', oldName));
-              const snapshot = await getDocs(q);
-              if (!snapshot.empty) {
-                const batch = writeBatch(db);
-                snapshot.docs.forEach((doc) => batch.update(doc.ref, { category: catData.name }));
-                await batch.commit();
-              }
+              await supabase.from('subscriptions')
+                .update({ category: catData.name })
+                .eq('user_id', user.id)
+                .eq('category', oldName);
             } catch (subErr) {
               console.error('Error updating subscriptions:', subErr);
             }
@@ -453,7 +420,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
         setMessage({ type: 'success', text: 'Categoria atualizada!' });
       } else {
         // Mode: Add
-        await createCategory(user.uid, catData.name, catData.color, undefined, catData.icon);
+        await createCategory(user.id, catData.name, catData.color, undefined, catData.icon);
         setMessage({ type: 'success', text: 'Categoria adicionada!' });
       }
       setIsCatModalOpen(false);
@@ -493,7 +460,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
     try {
       if (!cat.userId) {
         // Handle predefined category override
-        await createCategory(user.uid, cat.name, color, cat.id, cat.icon);
+        await createCategory(user.id, cat.name, color, cat.id, cat.icon);
       } else {
         // Handle existing custom/override category
         await updateCategory(cat.id, { color });
@@ -786,7 +753,7 @@ const Settings: React.FC<SettingsProps> = ({ user, initialTab }) => {
                               onClick={() => {
                                 setAvatarStyle(style.id);
                                 // Always update URL when style changes, using existing seed or a default one
-                                const currentSeed = avatarSeed || user.uid.substring(0, 5);
+                                const currentSeed = avatarSeed || user.id.substring(0, 5);
                                 if (!avatarSeed) setAvatarSeed(currentSeed);
                                 setPhotoURL(`https://api.dicebear.com/7.x/${style.id}/svg?seed=${currentSeed}`);
                               }}
